@@ -53,16 +53,16 @@ Don't put password hashes in nix — they end up in the store. Install puts them
 
 Needs UEFI. On the installer ISO, get network working, then either curl bootstrap or clone and run the script.
 
-Set `DEFAULT_REPO_URL` in `scripts/bootstrap.sh` once the repo is up (or pass `REPO_URL=...`).
-
 ```bash
 lsblk -d -o NAME,SIZE,TRAN
 
-curl -fsSL https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/scripts/bootstrap.sh \
-  | sudo bash -s -- /dev/vda
+curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \
+  | sudo env INSTALL_HOSTNAME=nixvm SWAP_SIZE=4G bash -s -- /dev/vda
 ```
 
-You'll confirm the wipe with `YES`, then enter a LUKS passphrase and a login password. Detach the ISO and reboot.
+Use `sudo env …` so the variables actually reach the script. It will print the disk and wait for you to type `YES`, then ask for LUKS and login passwords. Detach the ISO and reboot.
+
+If `main` 404s, try `master` or pass `BRANCH=…`.
 
 From a local checkout:
 

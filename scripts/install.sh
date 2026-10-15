@@ -16,6 +16,11 @@ cd "$FLAKE_ROOT"
 command -v nix >/dev/null || die "nix not found"
 command -v lsblk >/dev/null || die "lsblk not found"
 
+# Installer ISO often has these off
+export NIX_CONFIG="${NIX_CONFIG-}
+experimental-features = nix-command flakes
+"
+
 INSTALL_HOSTNAME=${INSTALL_HOSTNAME:-nixos}
 INSTALL_USERNAME=${INSTALL_USERNAME:-nixuser}
 SWAP_SIZE=${SWAP_SIZE:-4G}
@@ -79,7 +84,7 @@ cat > settings.nix << EOF
 EOF
 
 info "disko format+mount (LUKS passphrase next)"
-nix run github:nix-community/disko -- \
+nix --extra-experimental-features "nix-command flakes" run github:nix-community/disko -- \
   --flake "path:${FLAKE_ROOT}#${FLAKE_ATTR}" \
   --mode destroy,format,mount
 
@@ -102,7 +107,8 @@ cp -a "${FLAKE_ROOT}/." /mnt/persist/etc/nixos/
 [[ -f /mnt/persist/etc/nixos/settings.nix ]] || die "settings.nix missing after copy"
 
 info "nixos-install"
-nixos-install --no-root-passwd --flake "path:${FLAKE_ROOT}#${FLAKE_ATTR}"
+nixos-install --no-root-passwd --flake "path:${FLAKE_ROOT}#${FLAKE_ATTR}" \
+  || die "nixos-install failed (ensure flakes are enabled: see NIX_CONFIG in this script)"
 
 cat << EOF
 
