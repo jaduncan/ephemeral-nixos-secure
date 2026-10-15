@@ -1,0 +1,24 @@
+# Local / private machine identity (use settings.example.nix as the template)
+settings.nix
+
+# Machine-specific detected hardware (Disko owns filesystems)
+hardware-configuration.nix
+
+# Secrets / password material (hashes live on /persist, never in git)
+passwords/
+*.key
+*.pem
+id_rsa
+id_ed25519
+*.age
+secrets.nix
+
+# Nix build results
+.result
+result
+result-*
+
+# Editor / tooling
+.direnv/
+*.swp
+*~
