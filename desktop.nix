@@ -24,46 +24,34 @@ in
   ];
 
   environment.persistence."/persist".directories =
-    lib.optionals isPlasma [ "/var/lib/sddm" ]
+    lib.optionals isPlasma [ "/var/lib/plasmalogin" ]
     ++ lib.optionals isGnome [ "/var/lib/gdm" ];
 
-  # --- Plasma ---
+  # X11 helpers still useful for XWayland / some greeters
   services.xserver.enable = lib.mkIf (isPlasma || isGnome) true;
-  services.displayManager.sddm = lib.mkIf isPlasma {
-    enable = true;
-    wayland.enable = true;
-  };
+
+  # --- Plasma (Login Manager replaces SDDM on unstable) ---
   services.desktopManager.plasma6.enable = lib.mkIf isPlasma true;
+  services.displayManager.plasma-login-manager.enable = lib.mkIf isPlasma true;
 
   boot.plymouth = lib.mkIf isPlasma {
     theme = "breeze";
     themePackages = [ pkgs.kdePackages.breeze-plymouth ];
   };
 
-  # --- GNOME ---
-  services.displayManager.gdm = lib.mkIf isGnome {
-    enable = true;
-    wayland = true;
-  };
+  # --- GNOME (GDM is Wayland-only as of GNOME 50; do not set gdm.wayland) ---
+  services.displayManager.gdm.enable = lib.mkIf isGnome true;
   services.desktopManager.gnome.enable = lib.mkIf isGnome true;
 
-  # --- niri + Noctalia ---
+  # --- niri + Noctalia (greeter + shell from nixpkgs) ---
   programs.niri.enable = lib.mkIf isNiri true;
   programs.noctalia = lib.mkIf isNiri {
     enable = true;
     systemd.enable = true;
     recommendedServices.enable = true;
   };
-
-  services.greetd = lib.mkIf isNiri {
-    enable = true;
-    settings = {
-      default_session = {
-        command = "${lib.getExe pkgs.tuigreet} --time --cmd ${lib.getExe' pkgs.niri "niri-session"}";
-        user = "greeter";
-      };
-    };
-  };
+  # Wires greetd for us; session list includes niri when programs.niri.enable
+  services.displayManager.noctalia-greeter.enable = lib.mkIf isNiri true;
 
   environment.systemPackages =
     with pkgs;

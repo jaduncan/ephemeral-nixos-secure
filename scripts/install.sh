@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # sudo DISK=/dev/vda ./scripts/install.sh
-# optional: INSTALL_HOSTNAME INSTALL_USERNAME INSTALL_DESKTOP SWAP_SIZE TIMEZONE CHEZMOI_REPO ALLOW_UNFREE CONFIRM=YES
+# optional: INSTALL_* SWAP_SIZE TIMEZONE CHEZMOI_REPO ALLOW_UNFREE FLAKE_INPUTS=lock|update CONFIRM=YES
 
 set -euo pipefail
 
@@ -30,6 +30,7 @@ TIMEZONE=${TIMEZONE:-UTC}
 CHEZMOI_REPO=${CHEZMOI_REPO:-}
 ALLOW_UNFREE=${ALLOW_UNFREE:-true}
 FLAKE_ATTR=${FLAKE_ATTR:-nixos}
+FLAKE_INPUTS=${FLAKE_INPUTS:-lock}
 
 if [[ -z ${DISK:-} ]]; then
   info "disks:"
@@ -63,7 +64,8 @@ validate_swap "$SWAP_SIZE"
 validate_timezone "$TIMEZONE"
 validate_chezmoi "$CHEZMOI_REPO"
 validate_allow_unfree "$ALLOW_UNFREE"
-info "desktop=$INSTALL_DESKTOP"
+validate_flake_inputs "$FLAKE_INPUTS"
+info "desktop=$INSTALL_DESKTOP inputs=$FLAKE_INPUTS"
 
 info "will erase $DISK"
 lsblk "$DISK" | sed 's/^/    /'
@@ -117,12 +119,20 @@ cat > settings.nix << EOF
 }
 EOF
 
-if [[ ! -f flake.lock ]]; then
-  info "locking flake inputs (no flake.lock in repo yet)"
-  nix flake lock
-else
-  info "using existing flake.lock"
-fi
+case $FLAKE_INPUTS in
+  update)
+    info "updating flake inputs to newest (nix flake update)"
+    nix flake update
+    ;;
+  lock)
+    if [[ ! -f flake.lock ]]; then
+      info "no flake.lock — creating one"
+      nix flake lock
+    else
+      info "using flake.lock pins"
+    fi
+    ;;
+esac
 
 info "disko format+mount (LUKS passphrase next)"
 info "first run downloads nixpkgs/disko — can sit on 0/N for several minutes"

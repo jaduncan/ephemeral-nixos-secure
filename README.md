@@ -81,7 +81,7 @@ Sanity check: `sudo touch /ephemeral-test`, drop a file in `~`, reboot. Root fil
 - Hibernation is off on purpose (btrfs swapfile + LUKS). Suspend is fine.
 - `/boot` is unencrypted. Bootloader editor is disabled.
 - SSH is installed but port 22 is firewalled shut. Keys under `/persist/etc/ssh`.
-- Commit a `flake.lock` when you can (`nix flake lock`) so installs pin the same inputs.
+- `flake.lock` pins nixpkgs/disko/impermanence. The TUI asks whether to keep those pins or run `nix flake update` for newest. Plain install defaults to the lock (`FLAKE_INPUTS=update` to refresh).
 
 ## Troubleshooting
 

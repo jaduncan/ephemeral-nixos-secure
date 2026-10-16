@@ -62,3 +62,12 @@ validate_allow_unfree() {
     *) die "allowUnfree must be true or false (got: $1)" ;;
   esac
 }
+
+# lock = use flake.lock as-is (create if missing)
+# update = nix flake update (newest inputs)
+validate_flake_inputs() {
+  case $1 in
+    lock | update) ;;
+    *) die "FLAKE_INPUTS must be lock or update (got: $1)" ;;
+  esac
+}

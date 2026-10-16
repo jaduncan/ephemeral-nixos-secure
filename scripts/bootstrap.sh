@@ -68,6 +68,7 @@ export SWAP_SIZE="${SWAP_SIZE:-4G}"
 export TIMEZONE="${TIMEZONE:-UTC}"
 export CHEZMOI_REPO="${CHEZMOI_REPO:-}"
 export ALLOW_UNFREE="${ALLOW_UNFREE:-true}"
+export FLAKE_INPUTS="${FLAKE_INPUTS:-lock}"
 export FLAKE_ATTR="${FLAKE_ATTR:-nixos}"
 
 exec "$FLAKE_ROOT/scripts/install.sh"

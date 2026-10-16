@@ -82,17 +82,25 @@ TIMEZONE=$(run_gum input --header "Timezone" --value "${TIMEZONE:-UTC}" --placeh
 CHEZMOI_REPO=$(run_gum input --header "chezmoi repo (optional, https only)" --value "${CHEZMOI_REPO:-}" --placeholder "https://github.com/you/dotfiles.git")
 ALLOW_UNFREE=$(run_gum choose --header "Allow unfree packages?" "true" "false")
 
+if [[ -z ${FLAKE_INPUTS:-} ]]; then
+  flake_pick=$(run_gum choose --header "Flake inputs:" \
+    "lock    — use flake.lock (reproducible)" \
+    "update  — newest nixpkgs/disko/impermanence") || die "aborted"
+  FLAKE_INPUTS=$(awk '{print $1}' <<<"$flake_pick")
+fi
+
 validate_hostname "$INSTALL_HOSTNAME"
 validate_username "$INSTALL_USERNAME"
 validate_swap "$SWAP_SIZE"
 validate_timezone "$TIMEZONE"
 validate_chezmoi "$CHEZMOI_REPO"
 validate_allow_unfree "$ALLOW_UNFREE"
+validate_flake_inputs "$FLAKE_INPUTS"
 
 run_gum style --border rounded --padding "0 2" --border-foreground 196 \
   "WILL ERASE: $DISK" \
   "desktop=$INSTALL_DESKTOP  host=$INSTALL_HOSTNAME  user=$INSTALL_USERNAME" \
-  "swap=$SWAP_SIZE  tz=$TIMEZONE  unfree=$ALLOW_UNFREE"
+  "swap=$SWAP_SIZE  tz=$TIMEZONE  unfree=$ALLOW_UNFREE  inputs=$FLAKE_INPUTS"
 
 run_gum confirm "Erase $DISK and install?" || die "aborted"
 
@@ -104,6 +112,7 @@ export SWAP_SIZE
 export TIMEZONE
 export CHEZMOI_REPO
 export ALLOW_UNFREE
+export FLAKE_INPUTS
 export FLAKE_ATTR="${FLAKE_ATTR:-nixos}"
 export CONFIRM=YES
 
