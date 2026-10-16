@@ -55,14 +55,15 @@ run_gum style --border rounded --padding "0 2" --border-foreground 212 \
   "EphemeralOS install" "LUKS + btrfs + impermanence"
 
 # --- disk ---
+# NAME/TYPE first so MODEL spaces don't break field parsing
 if [[ -z ${DISK:-} ]]; then
-  mapfile -t disk_rows < <(lsblk -d -n -o NAME,SIZE,MODEL,TRAN,TYPE | awk '$5=="disk" {print}')
-  [[ ${#disk_rows[@]} -gt 0 ]] || die "no disks found"
+  mapfile -t disk_paths < <(lsblk -dpn -o NAME,TYPE | awk '$2 == "disk" { print $1 }')
+  [[ ${#disk_paths[@]} -gt 0 ]] || die "no disks found (lsblk -dpn -o NAME,TYPE)"
 
   choices=()
-  for row in "${disk_rows[@]}"; do
-    name=$(awk '{print $1}' <<<"$row")
-    choices+=("/dev/$name  $row")
+  for path in "${disk_paths[@]}"; do
+    meta=$(lsblk -dn -o SIZE,TRAN,MODEL "$path" 2>/dev/null | sed 's/[[:space:]]\+/ /g')
+    choices+=("$path  $meta")
   done
 
   picked=$(run_gum choose --header "Whole disk to erase:" "${choices[@]}") || die "aborted"
