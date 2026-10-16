@@ -1,5 +1,5 @@
 {
-  description = "Ephemeral NixOS with impermanence, LUKS, btrfs, and Plasma";
+  description = "Ephemeral NixOS with impermanence, LUKS, btrfs (Plasma / GNOME / niri)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -29,6 +29,7 @@
           disko.nixosModules.disko
           ./disko.nix
           ./configuration.nix
+          ./desktop.nix
           ./hardware-configuration.nix
           impermanence.nixosModules.impermanence
         ];

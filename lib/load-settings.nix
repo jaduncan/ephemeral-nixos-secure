@@ -9,6 +9,7 @@ let
     diskDevice = "/dev/nvme0n1";
     swapSize = "16G";
     timeZone = "UTC";
+    desktop = "plasma"; # plasma | gnome | niri
     chezmoiRepo = "";
     allowUnfree = true;
   };
@@ -26,4 +27,9 @@ assert merged.username != "";
 assert merged.diskDevice != "";
 assert merged.swapSize != "";
 assert merged.timeZone != "";
+assert builtins.elem merged.desktop [
+  "plasma"
+  "gnome"
+  "niri"
+];
 merged

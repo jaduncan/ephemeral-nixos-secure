@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/the-wittch/ephemeral-nixos/actions/workflows/ci.yml/badge.svg)](https://github.com/the-wittch/ephemeral-nixos/actions/workflows/ci.yml)
 
-Ephemeral NixOS: LUKS + btrfs via Disko, root wiped each boot (impermanence), Plasma 6, Plymouth unlock.
+Ephemeral NixOS: LUKS + btrfs via Disko, root wiped each boot (impermanence), Plymouth unlock. Pick Plasma, GNOME, or niri + Noctalia at install.
 
 Persistent bits live under `/persist` (including all of `/home`). Machine-specific stuff goes in gitignored `settings.nix`.
 
@@ -24,9 +24,12 @@ disk
 | `flake.nix` | nixpkgs, disko, impermanence |
 | `disko.nix` | partitions |
 | `configuration.nix` | system |
+| `desktop.nix` | plasma / gnome / niri+Noctalia |
 | `settings.example.nix` | copy → `settings.nix` |
 | `hardware-configuration.example.nix` | copy → `hardware-configuration.nix` |
-| `scripts/bootstrap.sh` | curl-friendly installer entrypoint |
+| `scripts/bootstrap-tui.sh` | preferred: gum TUI → install |
+| `scripts/bootstrap.sh` | plain fallback (no gum) |
+| `scripts/tui.sh` | gum prompts |
 | `scripts/install.sh` | disko + nixos-install |
 
 `settings.nix` and `hardware-configuration.nix` are gitignored. Rebuild with `path:.` so the flake can see them:
@@ -44,6 +47,7 @@ sudo nixos-rebuild switch --flake path:.#nixos
   diskDevice = "/dev/nvme0n1"; # whole disk
   swapSize = "16G";
   timeZone = "UTC";
+  desktop = "plasma"; # plasma | gnome | niri
   chezmoiRepo = "";
   allowUnfree = true;
 }
@@ -53,26 +57,34 @@ Don't put password hashes in nix — they end up in the store. Install puts them
 
 ## Install
 
-Needs UEFI. On the installer ISO, get network working, then either curl bootstrap or clone and run the script.
+Needs UEFI. On the installer ISO, get network working.
+
+### TUI (preferred)
+
+Needs a real TTY (gum). Download then run — don’t pipe into `sudo bash`:
 
 ```bash
-lsblk -d -o NAME,SIZE,TRAN
+curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap-tui.sh \
+  -o /tmp/bootstrap-tui.sh
+sudo bash /tmp/bootstrap-tui.sh
+```
 
+Or from a clone: `sudo ./scripts/tui.sh` / `sudo ./scripts/bootstrap-tui.sh`.
+
+Fetches `gum` via nix if needed. Walks disk, desktop, hostname, etc., then runs the same `install.sh` path.
+
+### Plain fallback
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \
   | sudo env INSTALL_HOSTNAME=nixvm SWAP_SIZE=4G bash -s -- /dev/vda
 ```
 
-Use `sudo env …` so the variables actually reach the script. It will print the disk and wait for you to type `YES`, then ask for LUKS and login passwords. Detach the ISO and reboot.
+Use `sudo env …` so vars reach the script. Prompts for desktop, `YES`, LUKS, login password. Or set `INSTALL_DESKTOP=niri` to skip the menu.
 
 If `main` 404s, try `master` or pass `BRANCH=…`.
 
-From a local checkout:
-
-```bash
-sudo ./scripts/bootstrap.sh /dev/vda
-```
-
-Env vars if you care: `INSTALL_HOSTNAME`, `INSTALL_USERNAME`, `SWAP_SIZE`, `TIMEZONE`, `REPO_URL`, `BRANCH`, `CONFIRM=YES`.
+Env vars: `INSTALL_HOSTNAME`, `INSTALL_USERNAME`, `INSTALL_DESKTOP`, `SWAP_SIZE`, `TIMEZONE`, `REPO_URL`, `BRANCH`, `CONFIRM=YES`, `DISK`.
 
 VMs: use UEFI/OVMF, VirtIO disk (usually `/dev/vda`), ≥64G disk / 8G RAM. Swap of `4G` is fine. Plymouth may look ugly on virtual GPUs; unlock still works.
 

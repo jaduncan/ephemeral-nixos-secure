@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Plain installer (no gum). Preferred TUI path: bootstrap-tui.sh
 # curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \
 #   | sudo env SWAP_SIZE=4G bash -s -- /dev/vda
 
@@ -62,6 +63,7 @@ lsblk "$DISK" | sed 's/^/    /'
 export DISK
 export INSTALL_HOSTNAME="${INSTALL_HOSTNAME:-nixos}"
 export INSTALL_USERNAME="${INSTALL_USERNAME:-nixuser}"
+export INSTALL_DESKTOP="${INSTALL_DESKTOP:-}"
 export SWAP_SIZE="${SWAP_SIZE:-4G}"
 export TIMEZONE="${TIMEZONE:-UTC}"
 export CHEZMOI_REPO="${CHEZMOI_REPO:-}"

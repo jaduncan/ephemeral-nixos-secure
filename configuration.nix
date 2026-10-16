@@ -22,11 +22,7 @@ in
 
     initrd.systemd.enable = true;
 
-    plymouth = {
-      enable = true;
-      theme = "breeze";
-      themePackages = [ pkgs.kdePackages.breeze-plymouth ];
-    };
+    plymouth.enable = true;
 
     consoleLogLevel = 3;
     initrd.verbose = false;
@@ -83,7 +79,6 @@ in
       "/var/lib/systemd"
       "/var/lib/bluetooth"
       "/var/lib/NetworkManager"
-      "/var/lib/sddm"
       "/var/lib/cups"
       "/var/lib/flatpak"
       "/var/lib/fwupd"
@@ -120,11 +115,6 @@ in
       done
     '';
   };
-
-  services.xserver.enable = true;
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
-  services.desktopManager.plasma6.enable = true;
 
   security.rtkit.enable = true;
   services.pipewire = {
@@ -290,13 +280,6 @@ in
     ghostty
     chezmoi
     distrobox
-    kdePackages.kate
-    kdePackages.ark
-    kdePackages.okular
-    kdePackages.gwenview
-    kdePackages.spectacle
-    kdePackages.discover
-    kdePackages.partitionmanager
     vlc
     wl-clipboard
     htop

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # sudo DISK=/dev/vda ./scripts/install.sh
-# optional: INSTALL_HOSTNAME INSTALL_USERNAME SWAP_SIZE TIMEZONE CHEZMOI_REPO ALLOW_UNFREE CONFIRM=YES
+# optional: INSTALL_HOSTNAME INSTALL_USERNAME INSTALL_DESKTOP SWAP_SIZE TIMEZONE CHEZMOI_REPO ALLOW_UNFREE CONFIRM=YES
 
 set -euo pipefail
 
@@ -41,6 +41,27 @@ fi
 [[ -b $DISK ]] || die "not a block device: $DISK"
 [[ $DISK =~ p?[0-9]+$ && ! $DISK =~ nvme[0-9]+n[0-9]+$ && ! $DISK =~ mmcblk[0-9]+$ ]] \
   && die "looks like a partition: $DISK"
+
+if [[ -z ${INSTALL_DESKTOP:-} ]]; then
+  echo
+  info "desktop environment:"
+  echo "  1) plasma  — KDE Plasma 6"
+  echo "  2) gnome   — GNOME"
+  echo "  3) niri    — niri + Noctalia shell"
+  echo
+  read -r -p "Choice [1]: " desk_choice
+  case ${desk_choice:-1} in
+    1 | plasma | Plasma | kde | KDE) INSTALL_DESKTOP=plasma ;;
+    2 | gnome | Gnome | GNOME) INSTALL_DESKTOP=gnome ;;
+    3 | niri | Niri) INSTALL_DESKTOP=niri ;;
+    *) die "invalid desktop choice: ${desk_choice}" ;;
+  esac
+fi
+case $INSTALL_DESKTOP in
+  plasma | gnome | niri) ;;
+  *) die "INSTALL_DESKTOP must be plasma, gnome, or niri (got: $INSTALL_DESKTOP)" ;;
+esac
+info "desktop=$INSTALL_DESKTOP"
 
 info "will erase $DISK"
 lsblk "$DISK" | sed 's/^/    /'
@@ -88,6 +109,7 @@ cat > settings.nix << EOF
   diskDevice = "${DISK}";
   swapSize = "${SWAP_SIZE}";
   timeZone = "${TIMEZONE}";
+  desktop = "${INSTALL_DESKTOP}";
   chezmoiRepo = "${CHEZMOI_REPO}";
   allowUnfree = ${ALLOW_UNFREE};
 }

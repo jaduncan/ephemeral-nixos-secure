@@ -11,6 +11,9 @@
   swapSize = "16G";
   timeZone = "UTC";
 
+  # plasma | gnome | niri (niri includes Noctalia shell)
+  desktop = "plasma";
+
   # e.g. "https://github.com/you/dotfiles.git"
   chezmoiRepo = "";
 
