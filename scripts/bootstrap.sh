@@ -1,12 +1,24 @@
 #!/usr/bin/env bash
-# Plain installer (no gum). Preferred TUI path: bootstrap-tui.sh
+# Plain installer (no gum). TUI path: bootstrap-tui.sh / tui.sh
 # curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \
 #   | sudo env SWAP_SIZE=4G bash -s -- /dev/vda
 
 set -euo pipefail
 
+SCRIPT_DIR=""
+src=${BASH_SOURCE[0]:-}
+if [[ -n $src && -f $src && $src != /dev/fd/* ]]; then
+  SCRIPT_DIR=$(cd "$(dirname "$src")" && pwd)
+fi
+
 die() { echo "error: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
+
+# Prefer shared validators when running from a real checkout
+if [[ -n $SCRIPT_DIR && -f $SCRIPT_DIR/common.sh ]]; then
+  # shellcheck source=common.sh
+  source "$SCRIPT_DIR/common.sh"
+fi
 
 DEFAULT_REPO_URL="https://github.com/the-wittch/ephemeral-nixos.git"
 
@@ -15,7 +27,6 @@ BRANCH="${BRANCH:-main}"
 
 [[ $EUID -eq 0 ]] || die "need root (use: curl ... | sudo env ... bash -s -- /dev/DISK)"
 
-# Installer ISO often has these off; http2=false avoids stalled cache downloads in VMs
 export NIX_CONFIG="${NIX_CONFIG-}
 experimental-features = nix-command flakes
 http2 = false
@@ -25,20 +36,26 @@ connect-timeout = 10
 
 DISK="${1:-${DISK:-}}"
 [[ -n $DISK ]] || die "usage: bash -s -- /dev/vda"
-[[ -b $DISK ]] || die "not a block device: $DISK"
+if declare -F validate_disk >/dev/null; then
+  validate_disk "$DISK"
+else
+  [[ -b $DISK ]] || die "not a block device: $DISK"
+fi
+
+if declare -F require_uefi >/dev/null; then
+  require_uefi
+elif [[ ! -d /sys/firmware/efi ]]; then
+  die "UEFI required (enable OVMF/UEFI in the VM/firmware)"
+fi
 
 info "REPO_URL=$REPO_URL"
 info "BRANCH=$BRANCH"
 info "DISK=$DISK"
 
 FLAKE_ROOT=""
-src=${BASH_SOURCE[0]:-}
-if [[ -n $src && -f $src && $src != /dev/fd/* ]]; then
-  src_dir=$(cd "$(dirname "$src")" && pwd)
-  if [[ -f $src_dir/../flake.nix ]]; then
-    FLAKE_ROOT=$(cd "$src_dir/.." && pwd)
-    info "local flake: $FLAKE_ROOT"
-  fi
+if [[ -n $SCRIPT_DIR && -f $SCRIPT_DIR/../flake.nix ]]; then
+  FLAKE_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
+  info "local flake: $FLAKE_ROOT"
 fi
 
 if [[ -z $FLAKE_ROOT ]]; then
@@ -54,6 +71,7 @@ if [[ -z $FLAKE_ROOT ]]; then
 fi
 
 [[ -f $FLAKE_ROOT/scripts/install.sh ]] || die "install.sh missing in clone"
+[[ -f $FLAKE_ROOT/scripts/common.sh ]] || die "common.sh missing in clone"
 [[ -f $FLAKE_ROOT/flake.nix ]] || die "flake.nix missing in clone"
 chmod +x "$FLAKE_ROOT/scripts/install.sh"
 

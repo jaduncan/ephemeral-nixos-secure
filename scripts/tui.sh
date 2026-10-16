@@ -9,6 +9,7 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$SCRIPT_DIR/common.sh"
 
 [[ $EUID -eq 0 ]] || die "run as root (sudo ./scripts/tui.sh)"
+require_uefi
 
 FLAKE_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$FLAKE_ROOT"

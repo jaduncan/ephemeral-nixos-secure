@@ -9,8 +9,9 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$SCRIPT_DIR/common.sh"
 
 [[ $EUID -eq 0 ]] || die "run as root"
+require_uefi
 
-FLAKE_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
+FLAKE_ROOT=$(cd "$(dirname "$SCRIPT_DIR")" && pwd)
 cd "$FLAKE_ROOT"
 
 command -v nix >/dev/null || die "nix not found"
@@ -65,6 +66,7 @@ validate_timezone "$TIMEZONE"
 validate_chezmoi "$CHEZMOI_REPO"
 validate_allow_unfree "$ALLOW_UNFREE"
 validate_flake_inputs "$FLAKE_INPUTS"
+validate_flake_attr "$FLAKE_ATTR"
 info "desktop=$INSTALL_DESKTOP inputs=$FLAKE_INPUTS"
 
 info "will erase $DISK"
@@ -74,12 +76,29 @@ if [[ ${CONFIRM:-} != YES ]]; then
   [[ $confirm == YES ]] || die "aborted"
 fi
 
-# Staging without .git avoids path flake hash mismatch; keep flake.lock when present
+STAGE=""
+cleanup() {
+  # Always leave STAGE before deleting — a deleted cwd breaks getcwd / nix.
+  if [[ -n ${STAGE:-} && -d ${STAGE:-} ]]; then
+    cd / || true
+    rm -rf "$STAGE"
+  fi
+}
+trap cleanup EXIT
+
 STAGE=$(mktemp -d /tmp/nixos-flake-stage.XXXXXX)
-trap 'rm -rf "$STAGE"' EXIT
 info "staging flake at $STAGE"
-cp -a "$FLAKE_ROOT"/. "$STAGE/"
-rm -rf "$STAGE/.git"
+
+# Copy sources only — skip build products / VCS / local machine files
+tar -C "$FLAKE_ROOT" \
+  --exclude='.git' \
+  --exclude='result' \
+  --exclude='result-*' \
+  --exclude='.direnv' \
+  --exclude='settings.nix' \
+  --exclude='hardware-configuration.nix' \
+  -cf - . | tar -C "$STAGE" -xf -
+
 cd "$STAGE"
 
 cp -f settings.example.nix settings.nix
@@ -134,13 +153,28 @@ case $FLAKE_INPUTS in
     ;;
 esac
 
+# Prefer disko revision pinned in flake.lock when present
+DISKO_FLAKE="github:nix-community/disko"
+if [[ -f flake.lock ]]; then
+  DISKO_REV=""
+  if command -v python3 >/dev/null; then
+    DISKO_REV=$(python3 -c 'import json; print(json.load(open("flake.lock"))["nodes"]["disko"]["locked"]["rev"])' 2>/dev/null || true)
+  fi
+  if [[ -n ${DISKO_REV:-} ]]; then
+    DISKO_FLAKE="github:nix-community/disko/${DISKO_REV}"
+    info "disko tool @ $DISKO_REV (from flake.lock)"
+  fi
+fi
+
 info "disko format+mount (LUKS passphrase next)"
 info "first run downloads nixpkgs/disko — can sit on 0/N for several minutes"
-# Installer ISO Nix often rejects --no-write-lock-file; lock already present or written above.
-nix run -L github:nix-community/disko -- \
+nix run -L "$DISKO_FLAKE" -- \
   --flake "path:${STAGE}#${FLAKE_ATTR}" \
   --mode destroy,format,mount
 
+findmnt /mnt >/dev/null 2>&1 || die "/mnt is not mounted after disko"
+findmnt /mnt/persist >/dev/null 2>&1 || die "/mnt/persist is not mounted after disko"
+findmnt /mnt/boot >/dev/null 2>&1 || die "/mnt/boot is not mounted after disko"
 btrfs subvolume list /mnt | grep -q 'root-blank' || die "root-blank missing after disko"
 
 mkdir -p /mnt/persist/passwords /mnt/persist/etc/ssh /mnt/persist/etc/nixos
@@ -153,20 +187,33 @@ if command -v mkpasswd >/dev/null; then
 else
   HASH=$(nix-shell -p mkpasswd --run 'mkpasswd -m sha-512')
 fi
-printf '%s\n' "$HASH" > "/mnt/persist/passwords/${INSTALL_USERNAME}"
+[[ -n $HASH ]] || die "empty password hash (mkpasswd failed or cancelled)"
+
+# Restrictive umask so the hash is never world-readable, even briefly
+(
+  umask 077
+  printf '%s\n' "$HASH" > "/mnt/persist/passwords/${INSTALL_USERNAME}"
+)
 chmod 600 "/mnt/persist/passwords/${INSTALL_USERNAME}"
+sync
 
-cp -a "$STAGE"/. /mnt/persist/etc/nixos/
+# Copy staged flake onto the target (already without .git)
+tar -C "$STAGE" -cf - . | tar -C /mnt/persist/etc/nixos -xf -
 [[ -f /mnt/persist/etc/nixos/settings.nix ]] || die "settings.nix missing after copy"
+[[ -f /mnt/persist/etc/nixos/flake.nix ]] || die "flake.nix missing after copy"
 
+# Leave deleted directories before nixos-install (getcwd safety)
+cd /
+cleanup
 trap - EXIT
-rm -rf "$STAGE"
+STAGE=""
 
 info "nixos-install from /mnt/persist/etc/nixos"
 if ! nixos-install --no-root-passwd --flake "path:/mnt/persist/etc/nixos#${FLAKE_ATTR}"; then
   echo "error: nixos-install failed" >&2
-  echo "  path hash mismatch: install from a tree without .git" >&2
-  echo "  store NAR mismatch: sudo nix-store --verify --check-contents --repair" >&2
+  echo "  retry (if /mnt still mounted):" >&2
+  echo "    cd / && sudo nixos-install --no-root-passwd --flake path:/mnt/persist/etc/nixos#${FLAKE_ATTR}" >&2
+  echo "  store repair: sudo nix-store --verify --check-contents --repair" >&2
   exit 1
 fi
 

@@ -1,4 +1,4 @@
-# shared by install.sh / tui.sh — source only, do not execute
+# shared by install.sh / tui.sh / bootstrap.sh — source only, do not execute
 
 die() { echo "error: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -16,7 +16,7 @@ nix_escape() {
 
 validate_hostname() {
   [[ $1 =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] \
-    || die "invalid hostname: $1 (labels: letters/digits/hyphen)"
+    || die "invalid hostname: $1 (letters/digits/hyphen)"
 }
 
 validate_username() {
@@ -47,7 +47,7 @@ validate_chezmoi() {
 validate_disk() {
   local d=$1
   [[ -b $d ]] || die "not a block device: $d"
-  # reject partitions: …pN, …N (sda1) but allow nvme0n1 / mmcblk0 whole disks
+  # reject partitions: …pN, sda1 — allow nvme0n1 / mmcblk0 whole disks
   if [[ $d =~ p[0-9]+$ ]]; then
     die "looks like a partition: $d (use the whole disk, e.g. /dev/nvme0n1)"
   fi
@@ -70,4 +70,14 @@ validate_flake_inputs() {
     lock | update) ;;
     *) die "FLAKE_INPUTS must be lock or update (got: $1)" ;;
   esac
+}
+
+validate_flake_attr() {
+  [[ $1 =~ ^[a-zA-Z][a-zA-Z0-9_-]*$ ]] \
+    || die "invalid FLAKE_ATTR: $1"
+}
+
+require_uefi() {
+  [[ -d /sys/firmware/efi ]] \
+    || die "UEFI required (this flake uses systemd-boot). Enable OVMF/UEFI in the VM/firmware."
 }

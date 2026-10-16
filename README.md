@@ -94,6 +94,7 @@ Sanity check: `sudo touch /ephemeral-test`, drop a file in `~`, reboot. Root fil
 | can't log in | missing `/persist/passwords/<user>` |
 | "Booting from Hard Disk…" forever | UEFI VM + Secure Boot off; ISO detached |
 | gum segfault / no disks | `git pull` and retry, or use `bootstrap.sh` |
+| getcwd / cannot get current path | pull latest install.sh; or `cd / && sudo nixos-install --no-root-passwd --flake path:/mnt/persist/etc/nixos#nixos` |
 
 ## Manual install
 

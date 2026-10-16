@@ -22,6 +22,9 @@ if [[ ! -t 0 || ! -t 1 ]]; then
   die "no TTY — download the script and run it, or use bootstrap.sh as a fallback"
 fi
 
+[[ -d /sys/firmware/efi ]] \
+  || die "UEFI required (enable OVMF/UEFI in the VM/firmware)"
+
 export NIX_CONFIG="${NIX_CONFIG-}
 experimental-features = nix-command flakes
 http2 = false
