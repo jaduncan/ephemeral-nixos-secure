@@ -102,7 +102,16 @@ Sanity check: `sudo touch /ephemeral-test`, drop a file in `~`, reboot. Root fil
 
 ## Gotchas
 
-- `passwd` doesn't stick across reboot — edit `/persist/passwords/$USER` (sha-512 hash) or re-run `mkpasswd`.
+- **Changing your login password:** `passwd` won't survive reboot (`mutableUsers = false`; hash lives on `/persist`). Do this instead:
+
+  ```bash
+  mkpasswd -m sha-512                    # type new password twice; prints a hash
+  sudo tee /persist/passwords/$USER      # paste the hash, then Ctrl-D
+  sudo chmod 600 /persist/passwords/$USER
+  ```
+
+  Next login (or rebuild) uses the new hash. Install already created this file once.
+
 - Hibernation is off on purpose (btrfs swapfile + LUKS). Suspend is fine.
 - `/boot` is unencrypted. Bootloader editor is disabled.
 - SSH is installed but port 22 is firewalled shut. Keys under `/persist/etc/ssh`.
