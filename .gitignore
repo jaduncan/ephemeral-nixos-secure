@@ -22,3 +22,6 @@ result-*
 .direnv/
 *.swp
 *~
+
+# Local maintainer runbook (not for the public repo)
+RELEASING.md
