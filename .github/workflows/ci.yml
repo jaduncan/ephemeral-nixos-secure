@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/determinate-nix-action@v3
+
+      - name: Use example machine files
+        run: |
+          cp settings.example.nix settings.nix
+          cp hardware-configuration.example.nix hardware-configuration.nix
+
+      - name: nix flake check
+        # path:. so gitignored settings/hardware files are in the flake tree
+        run: nix flake check path:. --no-write-lock-file

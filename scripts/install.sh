@@ -94,16 +94,12 @@ cat > settings.nix << EOF
 EOF
 
 info "locking flake inputs (in staging dir only)"
-nix --extra-experimental-features "nix-command flakes" flake lock
-
-NIX_FLAKE_FLAGS=(
-  --extra-experimental-features "nix-command flakes"
-  --no-write-lock-file
-)
+nix flake lock
 
 info "disko format+mount (LUKS passphrase next)"
 info "first run downloads nixpkgs/disko — can sit on 0/N for several minutes"
-nix "${NIX_FLAKE_FLAGS[@]}" run -L github:nix-community/disko -- \
+# Installer ISO Nix often rejects --no-write-lock-file; lock already written above.
+nix run -L github:nix-community/disko -- \
   --flake "path:${STAGE}#${FLAKE_ATTR}" \
   --mode destroy,format,mount
 
