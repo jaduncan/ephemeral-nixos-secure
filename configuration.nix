@@ -241,11 +241,11 @@ in
 
   services.fstrim.enable = true;
 
-  systemd.sleep.extraConfig = ''
-    AllowHibernation=no
-    AllowHybridSleep=no
-    AllowSuspendThenHibernate=no
-  '';
+  systemd.sleep.settings.Sleep = {
+    AllowHibernation = "no";
+    AllowHybridSleep = "no";
+    AllowSuspendThenHibernate = "no";
+  };
 
   time.timeZone = settings.timeZone;
   i18n.defaultLocale = "en_US.UTF-8";
