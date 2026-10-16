@@ -14,9 +14,12 @@ BRANCH="${BRANCH:-main}"
 
 [[ $EUID -eq 0 ]] || die "need root (use: curl ... | sudo env ... bash -s -- /dev/DISK)"
 
-# Installer ISO often has these off
+# Installer ISO often has these off; http2=false avoids stalled cache downloads in VMs
 export NIX_CONFIG="${NIX_CONFIG-}
 experimental-features = nix-command flakes
+http2 = false
+download-attempts = 5
+connect-timeout = 10
 "
 
 DISK="${1:-${DISK:-}}"

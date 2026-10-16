@@ -16,9 +16,12 @@ cd "$FLAKE_ROOT"
 command -v nix >/dev/null || die "nix not found"
 command -v lsblk >/dev/null || die "lsblk not found"
 
-# Installer ISO often has these off
+# Installer ISO often has these off; http2=false avoids stalled cache downloads in VMs
 export NIX_CONFIG="${NIX_CONFIG-}
 experimental-features = nix-command flakes
+http2 = false
+download-attempts = 5
+connect-timeout = 10
 "
 
 INSTALL_HOSTNAME=${INSTALL_HOSTNAME:-nixos}
@@ -84,7 +87,9 @@ cat > settings.nix << EOF
 EOF
 
 info "disko format+mount (LUKS passphrase next)"
-nix --extra-experimental-features "nix-command flakes" run github:nix-community/disko -- \
+info "first run downloads nixpkgs/disko — '0/N built' can sit for several minutes; not stuck"
+info "watch traffic with: lsblk / ip / another TTY: journalctl -f"
+nix --extra-experimental-features "nix-command flakes" run -L github:nix-community/disko -- \
   --flake "path:${FLAKE_ROOT}#${FLAKE_ATTR}" \
   --mode destroy,format,mount
 
