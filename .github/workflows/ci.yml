@@ -18,5 +18,5 @@ jobs:
           cp hardware-configuration.example.nix hardware-configuration.nix
 
       - name: nix flake check
-        # path:. so gitignored settings/hardware files are in the flake tree
-        run: nix flake check path:. --no-write-lock-file
+        # path:. so gitignored settings/hardware are visible; --no-build = eval only (not a full Plasma closure)
+        run: nix flake check path:. --no-write-lock-file --no-build

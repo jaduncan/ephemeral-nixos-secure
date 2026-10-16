@@ -1,27 +1,24 @@
-# Install
+# Install cheat sheet
 
-See [README.md](./README.md).
+Full context: [README](./README.md).
 
-**TUI (preferred)** — needs a TTY:
+**TUI** (clone first — needs a TTY):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap-tui.sh \
-  -o /tmp/bootstrap-tui.sh
-sudo bash /tmp/bootstrap-tui.sh
+git clone https://github.com/the-wittch/ephemeral-nixos.git ~/nix
+cd ~/nix && sudo ./scripts/tui.sh
 ```
 
-**Plain fallback:**
+**Plain** (pass the whole disk):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \
-  | sudo env INSTALL_HOSTNAME=nixvm SWAP_SIZE=4G bash -s -- /dev/vda
+  | sudo env SWAP_SIZE=4G bash -s -- /dev/vda
 ```
 
-Use `sudo env VAR=value …` (plain `sudo VAR=value` often drops the vars).
+Use `sudo env VAR=value …`. Detach ISO after it finishes, reboot, unlock LUKS.
 
-Or from a clone: `sudo ./scripts/tui.sh` / `sudo ./scripts/bootstrap.sh /dev/vda`
-
-Rebuilds later need `path:.` so `settings.nix` is visible:
+Rebuild later:
 
 ```bash
 cd /persist/etc/nixos

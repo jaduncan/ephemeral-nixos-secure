@@ -4,12 +4,12 @@
 
 set -euo pipefail
 
-die() { echo "error: $*" >&2; exit 1; }
-info() { echo "==> $*"; }
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
 
 [[ $EUID -eq 0 ]] || die "run as root (sudo ./scripts/tui.sh)"
 
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 FLAKE_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$FLAKE_ROOT"
 
@@ -23,7 +23,6 @@ download-attempts = 5
 connect-timeout = 10
 "
 
-# Charm apps are happier than raw linux console TERM in VMs
 case ${TERM:-} in
   linux | dumb | "" ) export TERM=xterm-256color ;;
 esac
@@ -35,7 +34,6 @@ fallback_plain() {
 
 [[ -t 0 && -t 1 ]] || fallback_plain "no TTY"
 
-# Resolve a real gum binary only (type -P ignores functions/aliases)
 GUM_BIN=$(type -P gum 2>/dev/null || true)
 if [[ -z ${GUM_BIN:-} ]]; then
   command -v nix >/dev/null || fallback_plain "need gum or nix"
@@ -46,7 +44,6 @@ fi
 
 run_gum() { "$GUM_BIN" "$@"; }
 
-# Probe — Bubble Tea/gum sometimes dies on odd consoles; fall back cleanly
 if ! run_gum style "ok" >/dev/null 2>&1; then
   fallback_plain "gum failed on this terminal"
 fi
@@ -54,8 +51,6 @@ fi
 run_gum style --border rounded --padding "0 2" --border-foreground 212 \
   "EphemeralOS install" "LUKS + btrfs + impermanence"
 
-# --- disk ---
-# NAME/TYPE first so MODEL spaces don't break field parsing
 if [[ -z ${DISK:-} ]]; then
   mapfile -t disk_paths < <(lsblk -dpn -o NAME,TYPE | awk '$2 == "disk" { print $1 }')
   [[ ${#disk_paths[@]} -gt 0 ]] || die "no disks found (lsblk -dpn -o NAME,TYPE)"
@@ -69,10 +64,8 @@ if [[ -z ${DISK:-} ]]; then
   picked=$(run_gum choose --header "Whole disk to erase:" "${choices[@]}") || die "aborted"
   DISK=$(awk '{print $1}' <<<"$picked")
 fi
+validate_disk "$DISK"
 
-[[ -b $DISK ]] || die "not a block device: $DISK"
-
-# --- desktop ---
 if [[ -z ${INSTALL_DESKTOP:-} ]]; then
   desk=$(run_gum choose --header "Desktop:" \
     "plasma  — KDE Plasma 6" \
@@ -80,19 +73,21 @@ if [[ -z ${INSTALL_DESKTOP:-} ]]; then
     "niri    — niri + Noctalia shell") || die "aborted"
   INSTALL_DESKTOP=$(awk '{print $1}' <<<"$desk")
 fi
+validate_desktop "$INSTALL_DESKTOP"
 
-# --- identity / knobs ---
 INSTALL_HOSTNAME=$(run_gum input --header "Hostname" --value "${INSTALL_HOSTNAME:-nixos}" --placeholder "nixos")
 INSTALL_USERNAME=$(run_gum input --header "Username" --value "${INSTALL_USERNAME:-nixuser}" --placeholder "nixuser")
 SWAP_SIZE=$(run_gum input --header "Swap size" --value "${SWAP_SIZE:-4G}" --placeholder "4G")
 TIMEZONE=$(run_gum input --header "Timezone" --value "${TIMEZONE:-UTC}" --placeholder "UTC")
-CHEZMOI_REPO=$(run_gum input --header "chezmoi repo (optional)" --value "${CHEZMOI_REPO:-}" --placeholder "https://github.com/you/dotfiles.git")
+CHEZMOI_REPO=$(run_gum input --header "chezmoi repo (optional, https only)" --value "${CHEZMOI_REPO:-}" --placeholder "https://github.com/you/dotfiles.git")
 ALLOW_UNFREE=$(run_gum choose --header "Allow unfree packages?" "true" "false")
 
-[[ -n $INSTALL_HOSTNAME ]] || die "hostname empty"
-[[ -n $INSTALL_USERNAME ]] || die "username empty"
-[[ -n $SWAP_SIZE ]] || die "swap size empty"
-[[ -n $TIMEZONE ]] || die "timezone empty"
+validate_hostname "$INSTALL_HOSTNAME"
+validate_username "$INSTALL_USERNAME"
+validate_swap "$SWAP_SIZE"
+validate_timezone "$TIMEZONE"
+validate_chezmoi "$CHEZMOI_REPO"
+validate_allow_unfree "$ALLOW_UNFREE"
 
 run_gum style --border rounded --padding "0 2" --border-foreground 196 \
   "WILL ERASE: $DISK" \

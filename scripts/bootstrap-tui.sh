@@ -57,7 +57,12 @@ fi
 chmod +x "$FLAKE_ROOT/scripts/tui.sh" "$FLAKE_ROOT/scripts/install.sh"
 
 # Optional: pre-set DISK / INSTALL_* via env; tui prompts for anything missing
-export DISK="${DISK:-${1:-}}"
+DISK="${DISK:-${1:-}}"
+if [[ -n $DISK ]]; then
+  [[ -b $DISK ]] || die "not a block device: $DISK (omit arg to pick in the TUI)"
+fi
+
+export DISK
 export INSTALL_HOSTNAME="${INSTALL_HOSTNAME:-}"
 export INSTALL_USERNAME="${INSTALL_USERNAME:-}"
 export INSTALL_DESKTOP="${INSTALL_DESKTOP:-}"

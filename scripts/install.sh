@@ -4,12 +4,12 @@
 
 set -euo pipefail
 
-die() { echo "error: $*" >&2; exit 1; }
-info() { echo "==> $*"; }
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
 
 [[ $EUID -eq 0 ]] || die "run as root"
 
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 FLAKE_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$FLAKE_ROOT"
 
@@ -33,14 +33,12 @@ FLAKE_ATTR=${FLAKE_ATTR:-nixos}
 
 if [[ -z ${DISK:-} ]]; then
   info "disks:"
-  lsblk -d -o NAME,SIZE,MODEL,TRAN,TYPE | sed 's/^/    /'
+  lsblk -dpn -o NAME,TYPE,SIZE,TRAN,MODEL | awk '$2=="disk"{print}' | sed 's/^/    /'
   echo
   read -r -p "whole disk (e.g. /dev/vda): " DISK
 fi
 
-[[ -b $DISK ]] || die "not a block device: $DISK"
-[[ $DISK =~ p?[0-9]+$ && ! $DISK =~ nvme[0-9]+n[0-9]+$ && ! $DISK =~ mmcblk[0-9]+$ ]] \
-  && die "looks like a partition: $DISK"
+validate_disk "$DISK"
 
 if [[ -z ${INSTALL_DESKTOP:-} ]]; then
   echo
@@ -57,10 +55,14 @@ if [[ -z ${INSTALL_DESKTOP:-} ]]; then
     *) die "invalid desktop choice: ${desk_choice}" ;;
   esac
 fi
-case $INSTALL_DESKTOP in
-  plasma | gnome | niri) ;;
-  *) die "INSTALL_DESKTOP must be plasma, gnome, or niri (got: $INSTALL_DESKTOP)" ;;
-esac
+
+validate_desktop "$INSTALL_DESKTOP"
+validate_hostname "$INSTALL_HOSTNAME"
+validate_username "$INSTALL_USERNAME"
+validate_swap "$SWAP_SIZE"
+validate_timezone "$TIMEZONE"
+validate_chezmoi "$CHEZMOI_REPO"
+validate_allow_unfree "$ALLOW_UNFREE"
 info "desktop=$INSTALL_DESKTOP"
 
 info "will erase $DISK"
@@ -70,12 +72,12 @@ if [[ ${CONFIRM:-} != YES ]]; then
   [[ $confirm == YES ]] || die "aborted"
 fi
 
-# --- Build a non-git staging tree (avoids path:/... hash mismatch with dirty git) ---
+# Staging without .git avoids path flake hash mismatch; keep flake.lock when present
 STAGE=$(mktemp -d /tmp/nixos-flake-stage.XXXXXX)
+trap 'rm -rf "$STAGE"' EXIT
 info "staging flake at $STAGE"
 cp -a "$FLAKE_ROOT"/. "$STAGE/"
 rm -rf "$STAGE/.git"
-rm -f "$STAGE/flake.lock"
 cd "$STAGE"
 
 cp -f settings.example.nix settings.nix
@@ -104,23 +106,27 @@ fi
 
 cat > settings.nix << EOF
 {
-  hostname = "${INSTALL_HOSTNAME}";
-  username = "${INSTALL_USERNAME}";
-  diskDevice = "${DISK}";
-  swapSize = "${SWAP_SIZE}";
-  timeZone = "${TIMEZONE}";
-  desktop = "${INSTALL_DESKTOP}";
-  chezmoiRepo = "${CHEZMOI_REPO}";
+  hostname = "$(nix_escape "$INSTALL_HOSTNAME")";
+  username = "$(nix_escape "$INSTALL_USERNAME")";
+  diskDevice = "$(nix_escape "$DISK")";
+  swapSize = "$(nix_escape "$SWAP_SIZE")";
+  timeZone = "$(nix_escape "$TIMEZONE")";
+  desktop = "$(nix_escape "$INSTALL_DESKTOP")";
+  chezmoiRepo = "$(nix_escape "$CHEZMOI_REPO")";
   allowUnfree = ${ALLOW_UNFREE};
 }
 EOF
 
-info "locking flake inputs (in staging dir only)"
-nix flake lock
+if [[ ! -f flake.lock ]]; then
+  info "locking flake inputs (no flake.lock in repo yet)"
+  nix flake lock
+else
+  info "using existing flake.lock"
+fi
 
 info "disko format+mount (LUKS passphrase next)"
 info "first run downloads nixpkgs/disko — can sit on 0/N for several minutes"
-# Installer ISO Nix often rejects --no-write-lock-file; lock already written above.
+# Installer ISO Nix often rejects --no-write-lock-file; lock already present or written above.
 nix run -L github:nix-community/disko -- \
   --flake "path:${STAGE}#${FLAKE_ATTR}" \
   --mode destroy,format,mount
@@ -143,10 +149,13 @@ chmod 600 "/mnt/persist/passwords/${INSTALL_USERNAME}"
 cp -a "$STAGE"/. /mnt/persist/etc/nixos/
 [[ -f /mnt/persist/etc/nixos/settings.nix ]] || die "settings.nix missing after copy"
 
-info "nixos-install from staging path $STAGE"
-if ! nixos-install --no-root-passwd --flake "path:${STAGE}#${FLAKE_ATTR}"; then
+trap - EXIT
+rm -rf "$STAGE"
+
+info "nixos-install from /mnt/persist/etc/nixos"
+if ! nixos-install --no-root-passwd --flake "path:/mnt/persist/etc/nixos#${FLAKE_ATTR}"; then
   echo "error: nixos-install failed" >&2
-  echo "  path hash mismatch: use a copy without .git (this script stages to $STAGE)" >&2
+  echo "  path hash mismatch: install from a tree without .git" >&2
   echo "  store NAR mismatch: sudo nix-store --verify --check-contents --repair" >&2
   exit 1
 fi
