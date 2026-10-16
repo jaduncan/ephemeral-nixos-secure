@@ -23,36 +23,35 @@ download-attempts = 5
 connect-timeout = 10
 "
 
-# Prefer real gum; otherwise nix run (installer ISO has nix, not gum)
-gum() {
-  if [[ -n ${GUM_BIN:-} ]]; then
-    "$GUM_BIN" "$@"
-  else
-    command gum "$@"
-  fi
-}
-
-ensure_gum() {
-  if command -v gum >/dev/null; then
-    GUM_BIN=$(command -v gum)
-    return
-  fi
-  command -v nix >/dev/null || die "need gum or nix to fetch gum"
-  info "fetching gum via nix…"
-  # Resolve once so later prompts are snappy
-  GUM_BIN=$(nix build --no-link --print-out-paths nixpkgs#gum)/bin/gum
-  [[ -x $GUM_BIN ]] || die "failed to build gum"
-}
+# Charm apps are happier than raw linux console TERM in VMs
+case ${TERM:-} in
+  linux | dumb | "" ) export TERM=xterm-256color ;;
+esac
 
 fallback_plain() {
-  info "gum unavailable or no TTY — using plain install.sh"
+  info "${1:-gum unavailable} — using plain install.sh"
   exec "$SCRIPT_DIR/install.sh"
 }
 
-[[ -t 0 && -t 1 ]] || fallback_plain
-ensure_gum || fallback_plain
+[[ -t 0 && -t 1 ]] || fallback_plain "no TTY"
 
-gum style --border rounded --padding "0 2" --border-foreground 212 \
+# Resolve a real gum binary only (type -P ignores functions/aliases)
+GUM_BIN=$(type -P gum 2>/dev/null || true)
+if [[ -z ${GUM_BIN:-} ]]; then
+  command -v nix >/dev/null || fallback_plain "need gum or nix"
+  info "fetching gum via nix…"
+  GUM_BIN=$(nix build --no-link --print-out-paths nixpkgs#gum)/bin/gum
+fi
+[[ -x ${GUM_BIN:-} ]] || fallback_plain "gum binary missing"
+
+run_gum() { "$GUM_BIN" "$@"; }
+
+# Probe — Bubble Tea/gum sometimes dies on odd consoles; fall back cleanly
+if ! run_gum style "ok" >/dev/null 2>&1; then
+  fallback_plain "gum failed on this terminal"
+fi
+
+run_gum style --border rounded --padding "0 2" --border-foreground 212 \
   "EphemeralOS install" "LUKS + btrfs + impermanence"
 
 # --- disk ---
@@ -66,7 +65,7 @@ if [[ -z ${DISK:-} ]]; then
     choices+=("/dev/$name  $row")
   done
 
-  picked=$(gum choose --header "Whole disk to erase:" "${choices[@]}") || die "aborted"
+  picked=$(run_gum choose --header "Whole disk to erase:" "${choices[@]}") || die "aborted"
   DISK=$(awk '{print $1}' <<<"$picked")
 fi
 
@@ -74,7 +73,7 @@ fi
 
 # --- desktop ---
 if [[ -z ${INSTALL_DESKTOP:-} ]]; then
-  desk=$(gum choose --header "Desktop:" \
+  desk=$(run_gum choose --header "Desktop:" \
     "plasma  — KDE Plasma 6" \
     "gnome   — GNOME" \
     "niri    — niri + Noctalia shell") || die "aborted"
@@ -82,24 +81,24 @@ if [[ -z ${INSTALL_DESKTOP:-} ]]; then
 fi
 
 # --- identity / knobs ---
-INSTALL_HOSTNAME=$(gum input --header "Hostname" --value "${INSTALL_HOSTNAME:-nixos}" --placeholder "nixos")
-INSTALL_USERNAME=$(gum input --header "Username" --value "${INSTALL_USERNAME:-nixuser}" --placeholder "nixuser")
-SWAP_SIZE=$(gum input --header "Swap size" --value "${SWAP_SIZE:-4G}" --placeholder "4G")
-TIMEZONE=$(gum input --header "Timezone" --value "${TIMEZONE:-UTC}" --placeholder "UTC")
-CHEZMOI_REPO=$(gum input --header "chezmoi repo (optional)" --value "${CHEZMOI_REPO:-}" --placeholder "https://github.com/you/dotfiles.git")
-ALLOW_UNFREE=$(gum choose --header "Allow unfree packages?" "true" "false")
+INSTALL_HOSTNAME=$(run_gum input --header "Hostname" --value "${INSTALL_HOSTNAME:-nixos}" --placeholder "nixos")
+INSTALL_USERNAME=$(run_gum input --header "Username" --value "${INSTALL_USERNAME:-nixuser}" --placeholder "nixuser")
+SWAP_SIZE=$(run_gum input --header "Swap size" --value "${SWAP_SIZE:-4G}" --placeholder "4G")
+TIMEZONE=$(run_gum input --header "Timezone" --value "${TIMEZONE:-UTC}" --placeholder "UTC")
+CHEZMOI_REPO=$(run_gum input --header "chezmoi repo (optional)" --value "${CHEZMOI_REPO:-}" --placeholder "https://github.com/you/dotfiles.git")
+ALLOW_UNFREE=$(run_gum choose --header "Allow unfree packages?" "true" "false")
 
 [[ -n $INSTALL_HOSTNAME ]] || die "hostname empty"
 [[ -n $INSTALL_USERNAME ]] || die "username empty"
 [[ -n $SWAP_SIZE ]] || die "swap size empty"
 [[ -n $TIMEZONE ]] || die "timezone empty"
 
-gum style --border rounded --padding "0 2" --border-foreground 196 \
+run_gum style --border rounded --padding "0 2" --border-foreground 196 \
   "WILL ERASE: $DISK" \
   "desktop=$INSTALL_DESKTOP  host=$INSTALL_HOSTNAME  user=$INSTALL_USERNAME" \
   "swap=$SWAP_SIZE  tz=$TIMEZONE  unfree=$ALLOW_UNFREE"
 
-gum confirm "Erase $DISK and install?" || die "aborted"
+run_gum confirm "Erase $DISK and install?" || die "aborted"
 
 export DISK
 export INSTALL_HOSTNAME
