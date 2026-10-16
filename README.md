@@ -1,4 +1,6 @@
-# nix
+# EphemeralOS
+
+[![CI](https://github.com/the-wittch/ephemeral-nixos/actions/workflows/ci.yml/badge.svg)](https://github.com/the-wittch/ephemeral-nixos/actions/workflows/ci.yml)
 
 Ephemeral NixOS: LUKS + btrfs via Disko, root wiped each boot (impermanence), Plasma 6, Plymouth unlock.
 
