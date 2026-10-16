@@ -112,8 +112,14 @@ cp -a "${FLAKE_ROOT}/." /mnt/persist/etc/nixos/
 [[ -f /mnt/persist/etc/nixos/settings.nix ]] || die "settings.nix missing after copy"
 
 info "nixos-install"
-nixos-install --no-root-passwd --flake "path:${FLAKE_ROOT}#${FLAKE_ATTR}" \
-  || die "nixos-install failed (ensure flakes are enabled: see NIX_CONFIG in this script)"
+if ! nixos-install --no-root-passwd --flake "path:${FLAKE_ROOT}#${FLAKE_ATTR}"; then
+  echo "error: nixos-install failed" >&2
+  echo "  if you saw 'NAR hash mismatch': bad/partial download — repair and retry:" >&2
+  echo "    sudo nix-store --verify --check-contents --repair" >&2
+  echo "    then re-run this script (or just nixos-install again)" >&2
+  echo "  if you saw 'experimental feature': export NIX_CONFIG with nix-command flakes" >&2
+  exit 1
+fi
 
 cat << EOF
 
