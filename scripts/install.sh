@@ -16,7 +16,6 @@ cd "$FLAKE_ROOT"
 command -v nix >/dev/null || die "nix not found"
 command -v lsblk >/dev/null || die "lsblk not found"
 
-# Installer ISO often has these off; http2=false avoids stalled cache downloads in VMs
 export NIX_CONFIG="${NIX_CONFIG-}
 experimental-features = nix-command flakes
 http2 = false
@@ -49,6 +48,14 @@ if [[ ${CONFIRM:-} != YES ]]; then
   read -r -p "Type YES to continue: " confirm
   [[ $confirm == YES ]] || die "aborted"
 fi
+
+# --- Build a non-git staging tree (avoids path:/... hash mismatch with dirty git) ---
+STAGE=$(mktemp -d /tmp/nixos-flake-stage.XXXXXX)
+info "staging flake at $STAGE"
+cp -a "$FLAKE_ROOT"/. "$STAGE/"
+rm -rf "$STAGE/.git"
+rm -f "$STAGE/flake.lock"
+cd "$STAGE"
 
 cp -f settings.example.nix settings.nix
 cp -f hardware-configuration.example.nix hardware-configuration.nix
@@ -86,11 +93,18 @@ cat > settings.nix << EOF
 }
 EOF
 
+info "locking flake inputs (in staging dir only)"
+nix --extra-experimental-features "nix-command flakes" flake lock
+
+NIX_FLAKE_FLAGS=(
+  --extra-experimental-features "nix-command flakes"
+  --no-write-lock-file
+)
+
 info "disko format+mount (LUKS passphrase next)"
-info "first run downloads nixpkgs/disko — '0/N built' can sit for several minutes; not stuck"
-info "watch traffic with: lsblk / ip / another TTY: journalctl -f"
-nix --extra-experimental-features "nix-command flakes" run -L github:nix-community/disko -- \
-  --flake "path:${FLAKE_ROOT}#${FLAKE_ATTR}" \
+info "first run downloads nixpkgs/disko — can sit on 0/N for several minutes"
+nix "${NIX_FLAKE_FLAGS[@]}" run -L github:nix-community/disko -- \
+  --flake "path:${STAGE}#${FLAKE_ATTR}" \
   --mode destroy,format,mount
 
 btrfs subvolume list /mnt | grep -q 'root-blank' || die "root-blank missing after disko"
@@ -108,16 +122,14 @@ fi
 printf '%s\n' "$HASH" > "/mnt/persist/passwords/${INSTALL_USERNAME}"
 chmod 600 "/mnt/persist/passwords/${INSTALL_USERNAME}"
 
-cp -a "${FLAKE_ROOT}/." /mnt/persist/etc/nixos/
+cp -a "$STAGE"/. /mnt/persist/etc/nixos/
 [[ -f /mnt/persist/etc/nixos/settings.nix ]] || die "settings.nix missing after copy"
 
-info "nixos-install"
-if ! nixos-install --no-root-passwd --flake "path:${FLAKE_ROOT}#${FLAKE_ATTR}"; then
+info "nixos-install from staging path $STAGE"
+if ! nixos-install --no-root-passwd --flake "path:${STAGE}#${FLAKE_ATTR}"; then
   echo "error: nixos-install failed" >&2
-  echo "  if you saw 'NAR hash mismatch': bad/partial download — repair and retry:" >&2
-  echo "    sudo nix-store --verify --check-contents --repair" >&2
-  echo "    then re-run this script (or just nixos-install again)" >&2
-  echo "  if you saw 'experimental feature': export NIX_CONFIG with nix-command flakes" >&2
+  echo "  path hash mismatch: use a copy without .git (this script stages to $STAGE)" >&2
+  echo "  store NAR mismatch: sudo nix-store --verify --check-contents --repair" >&2
   exit 1
 fi
 
