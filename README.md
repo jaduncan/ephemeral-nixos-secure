@@ -38,7 +38,7 @@ sudo env TAG=v0.1.0 EXPECTED_REV=e00e32a595a2651a2c0ded11f1831f89e998927c \
   bash /tmp/bootstrap-tui.sh
 ```
 
-Update `TAG` / `REV` when you publish a new release (and bump [`RELEASE`](./RELEASE)).
+Copy the tag and commit from the latest [GitHub release](https://github.com/the-wittch/ephemeral-nixos/releases) (or from [`RELEASE`](./RELEASE) on that tag) if these examples are stale.
 
 ### Floating `main` (dev)
 
