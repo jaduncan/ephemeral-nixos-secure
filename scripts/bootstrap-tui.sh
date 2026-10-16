@@ -14,7 +14,16 @@ info() { echo "==> $*"; }
 DEFAULT_REPO_URL="https://github.com/the-wittch/ephemeral-nixos.git"
 
 REPO_URL="${REPO_URL:-$DEFAULT_REPO_URL}"
-BRANCH="${BRANCH:-main}"
+BRANCH="${TAG:-${BRANCH:-main}}"
+EXPECTED_REV="${EXPECTED_REV:-}"
+
+# shellcheck source=common.sh
+# common.sh may be missing when this file is curl'd alone; clone brings it.
+_SRC=${BASH_SOURCE[0]:-}
+if [[ -n $_SRC && -f $_SRC && $_SRC != /dev/fd/* && -f $(dirname "$_SRC")/common.sh ]]; then
+  # shellcheck source=common.sh
+  source "$(dirname "$_SRC")/common.sh"
+fi
 
 [[ $EUID -eq 0 ]] || die "need root (sudo bash …/bootstrap-tui.sh)"
 
@@ -49,15 +58,21 @@ if [[ -z $FLAKE_ROOT ]]; then
   command -v git >/dev/null || die "git not found"
 
   FLAKE_ROOT=$(mktemp -d /tmp/nixos-flake.XXXXXX)
-  info "cloning $REPO_URL (branch $BRANCH) → $FLAKE_ROOT"
+  info "cloning $REPO_URL (ref $BRANCH) → $FLAKE_ROOT"
   git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$FLAKE_ROOT" \
-    || die "git clone failed (check URL/branch and network)"
+    || die "git clone failed (check URL/tag/branch and network)"
 fi
 
 [[ -f $FLAKE_ROOT/scripts/tui.sh ]] || die "tui.sh missing in clone"
 [[ -f $FLAKE_ROOT/scripts/install.sh ]] || die "install.sh missing in clone"
+[[ -f $FLAKE_ROOT/scripts/common.sh ]] || die "common.sh missing in clone"
 [[ -f $FLAKE_ROOT/flake.nix ]] || die "flake.nix missing in clone"
 chmod +x "$FLAKE_ROOT/scripts/tui.sh" "$FLAKE_ROOT/scripts/install.sh"
+
+# Load verify helper from the clone when this script was curl'd alone
+# shellcheck source=common.sh
+source "$FLAKE_ROOT/scripts/common.sh"
+verify_git_rev "$FLAKE_ROOT"
 
 # Optional: pre-set DISK / INSTALL_* via env; tui prompts for anything missing
 DISK="${DISK:-${1:-}}"

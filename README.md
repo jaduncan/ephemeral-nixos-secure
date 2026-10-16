@@ -15,7 +15,32 @@ Machine stuff goes in gitignored `settings.nix`. Passwords live in `/persist/pas
 
 UEFI, network up on the graphical ISO.
 
-Clone and run the TUI (needs a real terminal; don't pipe this into sudo):
+### Pinned install (recommended)
+
+Use a [release tag](https://github.com/the-wittch/ephemeral-nixos/releases) and check the commit hash. Values live in [`RELEASE`](./RELEASE) on that tag:
+
+```bash
+TAG=v0.1.0
+REV=e00e32a595a2651a2c0ded11f1831f89e998927c   # must match RELEASE / the GitHub release
+
+git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
+cd ~/nix
+[[ $(git rev-parse HEAD) == "$REV" ]] || { echo "hash mismatch"; exit 1; }
+sudo ./scripts/tui.sh
+```
+
+Same pin via bootstrap (no interactive clone):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v0.1.0/scripts/bootstrap-tui.sh \
+  -o /tmp/bootstrap-tui.sh
+sudo env TAG=v0.1.0 EXPECTED_REV=e00e32a595a2651a2c0ded11f1831f89e998927c \
+  bash /tmp/bootstrap-tui.sh
+```
+
+Update `TAG` / `REV` when you publish a new release (and bump [`RELEASE`](./RELEASE)).
+
+### Floating `main` (dev)
 
 ```bash
 git clone https://github.com/the-wittch/ephemeral-nixos.git ~/nix
@@ -23,7 +48,7 @@ cd ~/nix
 sudo ./scripts/tui.sh
 ```
 
-No clone / no gum — plain script, pass the whole disk:
+Plain / no gum:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \

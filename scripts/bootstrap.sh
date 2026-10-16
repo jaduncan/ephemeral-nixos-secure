@@ -23,7 +23,9 @@ fi
 DEFAULT_REPO_URL="https://github.com/the-wittch/ephemeral-nixos.git"
 
 REPO_URL="${REPO_URL:-$DEFAULT_REPO_URL}"
-BRANCH="${BRANCH:-main}"
+# TAG wins over BRANCH (both work with git clone --branch; tags are preferred for pins)
+BRANCH="${TAG:-${BRANCH:-main}}"
+EXPECTED_REV="${EXPECTED_REV:-}"
 
 [[ $EUID -eq 0 ]] || die "need root (use: curl ... | sudo env ... bash -s -- /dev/DISK)"
 
@@ -49,7 +51,8 @@ elif [[ ! -d /sys/firmware/efi ]]; then
 fi
 
 info "REPO_URL=$REPO_URL"
-info "BRANCH=$BRANCH"
+info "REF=$BRANCH"
+[[ -n $EXPECTED_REV ]] && info "EXPECTED_REV=$EXPECTED_REV"
 info "DISK=$DISK"
 
 FLAKE_ROOT=""
@@ -65,15 +68,19 @@ if [[ -z $FLAKE_ROOT ]]; then
   command -v git >/dev/null || die "git not found"
 
   FLAKE_ROOT=$(mktemp -d /tmp/nixos-flake.XXXXXX)
-  info "cloning $REPO_URL (branch $BRANCH) → $FLAKE_ROOT"
+  info "cloning $REPO_URL (ref $BRANCH) → $FLAKE_ROOT"
   git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$FLAKE_ROOT" \
-    || die "git clone failed (check URL/branch and network)"
+    || die "git clone failed (check URL/tag/branch and network)"
 fi
 
 [[ -f $FLAKE_ROOT/scripts/install.sh ]] || die "install.sh missing in clone"
 [[ -f $FLAKE_ROOT/scripts/common.sh ]] || die "common.sh missing in clone"
 [[ -f $FLAKE_ROOT/flake.nix ]] || die "flake.nix missing in clone"
 chmod +x "$FLAKE_ROOT/scripts/install.sh"
+
+if declare -F verify_git_rev >/dev/null; then
+  verify_git_rev "$FLAKE_ROOT"
+fi
 
 info "about to erase $DISK — install.sh will ask you to type YES"
 lsblk "$DISK" | sed 's/^/    /'

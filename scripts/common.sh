@@ -81,3 +81,30 @@ require_uefi() {
   [[ -d /sys/firmware/efi ]] \
     || die "UEFI required (this flake uses systemd-boot). Enable OVMF/UEFI in the VM/firmware."
 }
+
+# After clone/checkout: ensure HEAD matches EXPECTED_REV (full or unique prefix).
+# If EXPECTED_REV is unset and REF is a pin (not main/master), read COMMIT= from RELEASE.
+verify_git_rev() {
+  local root=$1
+  local want=${EXPECTED_REV:-}
+  local ref=${TAG:-${BRANCH:-main}}
+  local got tag_line
+
+  command -v git >/dev/null || die "git not found"
+  got=$(git -C "$root" rev-parse HEAD)
+
+  if [[ -z $want && -f $root/RELEASE && $ref != main && $ref != master ]]; then
+    want=$(grep -E '^COMMIT=' "$root/RELEASE" | head -1 | cut -d= -f2- | tr -d '[:space:]')
+  fi
+
+  [[ -n $want ]] || return 0
+
+  if [[ $got == "$want" || $got == "$want"* ]]; then
+    info "verified git rev $got"
+    return 0
+  fi
+
+  tag_line=""
+  [[ -f $root/RELEASE ]] && tag_line=$(grep -E '^TAG=' "$root/RELEASE" | head -1 || true)
+  die "git rev mismatch: got $got, expected $want${tag_line:+ ($tag_line)}. Refusing to install."
+}
