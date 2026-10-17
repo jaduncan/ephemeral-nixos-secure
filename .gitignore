@@ -23,5 +23,6 @@ result-*
 *.swp
 *~
 
-# Local maintainer runbook (not for the public repo)
+# Local maintainer runbooks (not for the public repo)
 RELEASING.md
+RESTORE.md
