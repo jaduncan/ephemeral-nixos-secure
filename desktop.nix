@@ -39,18 +39,18 @@ in
     themePackages = [ pkgs.kdePackages.breeze-plymouth ];
   };
 
-  # KWallet — unlock with login password (Brave / Chromium secret service)
-  security.pam.services = lib.mkIf isPlasma {
-    login.kwallet.enable = true;
-    plasmalogin.kwallet.enable = true;
-  };
+  # Secret service — unlock with login password (Brave / Chromium, etc.)
+  # (nested options only — don't assign security.pam.services = { } in this file)
+  security.pam.services.login.kwallet.enable = lib.mkIf isPlasma true;
+  security.pam.services.plasmalogin.kwallet.enable = lib.mkIf isPlasma true;
+  security.pam.services.login.enableGnomeKeyring = lib.mkIf (isGnome || isNiri) true;
+  security.pam.services.greetd.enableGnomeKeyring = lib.mkIf isNiri true;
 
   # --- GNOME (GDM is Wayland-only as of GNOME 50; do not set gdm.wayland) ---
   services.displayManager.gdm.enable = lib.mkIf isGnome true;
   services.desktopManager.gnome.enable = lib.mkIf isGnome true;
 
   services.gnome.gnome-keyring.enable = lib.mkIf (isGnome || isNiri) true;
-  security.pam.services.login.enableGnomeKeyring = lib.mkIf (isGnome || isNiri) true;
 
   # --- niri + Noctalia (greeter + shell from nixpkgs) ---
   programs.niri.enable = lib.mkIf isNiri true;
@@ -61,7 +61,6 @@ in
   };
   # Wires greetd for us; session list includes niri when programs.niri.enable
   services.displayManager.noctalia-greeter.enable = lib.mkIf isNiri true;
-  security.pam.services.greetd.enableGnomeKeyring = lib.mkIf isNiri true;
 
   environment.systemPackages =
     with pkgs;
