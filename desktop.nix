@@ -49,6 +49,7 @@ in
   # --- GNOME (GDM is Wayland-only as of GNOME 50; do not set gdm.wayland) ---
   services.displayManager.gdm.enable = lib.mkIf isGnome true;
   services.desktopManager.gnome.enable = lib.mkIf isGnome true;
+  services.gnome.gnome-initial-setup.enable = lib.mkIf isGnome false;
 
   services.gnome.gnome-keyring.enable = lib.mkIf (isGnome || isNiri) true;
 
@@ -61,6 +62,9 @@ in
   };
   # Wires greetd for us; session list includes niri when programs.niri.enable
   services.displayManager.noctalia-greeter.enable = lib.mkIf isNiri true;
+
+  # Skip Plasma's first-login welcome tour
+  environment.plasma6.excludePackages = lib.mkIf isPlasma [ pkgs.kdePackages.plasma-welcome ];
 
   environment.systemPackages =
     with pkgs;
