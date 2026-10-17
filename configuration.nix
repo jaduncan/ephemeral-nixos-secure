@@ -134,11 +134,8 @@ in
   services.power-profiles-daemon.enable = true;
 
   services.printing.enable = true;
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    openFirewall = true;
-  };
+  # Off by default — mDNS/printer discovery; enable if you need .local / network CUPS
+  services.avahi.enable = false;
 
   services.fwupd.enable = true;
   services.flatpak.enable = true;
@@ -197,6 +194,18 @@ in
   ];
 
   programs.dconf.enable = true;
+
+  # Desktop / Downloads / .local / etc. on first graphical/user session
+  systemd.user.services.xdg-user-dirs = {
+    description = "Create default XDG user directories";
+    wantedBy = [ "default.target" ];
+    unitConfig.ConditionUser = "!@system";
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update";
+    };
+  };
 
   networking.networkmanager = {
     enable = true;
@@ -292,6 +301,7 @@ in
     dig
     ripgrep
     wireguard-tools
+    xdg-user-dirs
   ];
 
   environment.sessionVariables.TERMINAL = "ghostty";
