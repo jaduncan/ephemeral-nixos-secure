@@ -87,6 +87,12 @@ Sanity check: `sudo touch /ephemeral-test`, drop a file in `~`, reboot. Root fil
 }
 ```
 
+### Forks and private flakes
+
+Install leaves the flake at `/persist/etc/nixos`. You can keep using this repo as-is and only edit `settings.nix`, or treat that directory as your own flake: fork this project, push to a private remote, and commit machine-specific modules there (DNS, Steam, extra imports, whatever). The public tree is meant to stay a small template; how you split files afterward is up to you.
+
+Rebuilds are the same either way — still `path:.#nixos` so gitignored files are included.
+
 ## Repo map
 
 | path | what |
