@@ -21,7 +21,7 @@ Use a [release tag](https://github.com/the-wittch/ephemeral-nixos/releases) and 
 
 ```bash
 TAG=v1.0.0
-REV=e00e32a595a2651a2c0ded11f1831f89e998927c   # must match RELEASE / the GitHub release
+REV=d4b66a9f250bf5b220d275b6ecb7762d2d8fc722   # must match RELEASE / the GitHub release
 
 git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
 cd ~/nix
@@ -34,7 +34,7 @@ Same pin via bootstrap (no interactive clone):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v1.0.0/scripts/bootstrap-tui.sh \
   -o /tmp/bootstrap-tui.sh
-sudo env TAG=v1.0.0 EXPECTED_REV=e00e32a595a2651a2c0ded11f1831f89e998927c \
+sudo env TAG=v1.0.0 EXPECTED_REV=d4b66a9f250bf5b220d275b6ecb7762d2d8fc722 \
   bash /tmp/bootstrap-tui.sh
 ```
 

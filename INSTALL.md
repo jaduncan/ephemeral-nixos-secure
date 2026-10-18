@@ -6,7 +6,7 @@ Full context: [README](./README.md). Pin values: [`RELEASE`](./RELEASE).
 
 ```bash
 TAG=v1.0.0
-REV=e00e32a595a2651a2c0ded11f1831f89e998927c
+REV=d4b66a9f250bf5b220d275b6ecb7762d2d8fc722
 
 git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
 cd ~/nix
@@ -25,7 +25,7 @@ cd ~/nix && sudo ./scripts/tui.sh
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v1.0.0/scripts/bootstrap.sh \
-  | sudo env TAG=v1.0.0 EXPECTED_REV=e00e32a595a2651a2c0ded11f1831f89e998927c SWAP_SIZE=4G \
+  | sudo env TAG=v1.0.0 EXPECTED_REV=d4b66a9f250bf5b220d275b6ecb7762d2d8fc722 SWAP_SIZE=4G \
     bash -s -- /dev/vda
 ```
 
