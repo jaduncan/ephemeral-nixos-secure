@@ -91,6 +91,8 @@ Sanity check: `sudo touch /ephemeral-test`, drop a file in `~`, reboot. Root fil
 
 Install leaves the flake at `/persist/etc/nixos`. You can keep using this repo as-is and only edit `settings.nix`, or treat that directory as your own flake: fork this project, push to a private remote, and commit machine-specific modules there (DNS, Steam, extra imports, whatever). The public tree is meant to stay a small template; how you split files afterward is up to you.
 
+A public example of that split is [ephemeral-nixos-config](https://github.com/the-wittch/ephemeral-nixos-config): the same install, then extra modules for one machine. It tracks this template on its own and may not match a given release tag.
+
 Rebuilds are the same either way — still `path:.#nixos` so gitignored files are included.
 
 ## Repo map
