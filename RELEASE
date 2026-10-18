@@ -1,11 +1,5 @@
-# Pinned install target. When cutting a release:
-#   1. commit the tree you want
-#   2. set COMMIT= to `git rev-parse HEAD`
-#   3. commit RELEASE if it changed
-#   4. git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
-#   5. mirror TAG/COMMIT in the GitHub release notes + README examples
-#
-# Installers: TAG=v0.1.0 and/or EXPECTED_REV=<COMMIT> (see README).
+# Pinned install target.
+# Installers: TAG=v1.0.0 and/or EXPECTED_REV=<COMMIT> (see README).
 
-TAG=v0.1.0
+TAG=v1.0.0
 COMMIT=e00e32a595a2651a2c0ded11f1831f89e998927c
