@@ -77,6 +77,7 @@ in
     directories = [
       "/home"
       "/var/lib/nixos"
+      "/var/lib/AccountsService"
       "/var/lib/systemd"
       "/var/lib/bluetooth"
       "/var/lib/NetworkManager"
