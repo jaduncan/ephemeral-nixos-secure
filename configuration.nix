@@ -17,6 +17,7 @@ in
   boot = {
     loader.systemd-boot.enable = true;
     loader.systemd-boot.editor = false;
+    loader.systemd-boot.configurationLimit = 5;
     loader.efi.canTouchEfiVariables = true;
     loader.timeout = 3;
 
