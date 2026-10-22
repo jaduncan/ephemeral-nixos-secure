@@ -5,8 +5,8 @@ Full context: [README](./README.md). Pin values: [`RELEASE`](./RELEASE).
 **Pinned TUI** (recommended):
 
 ```bash
-TAG=v1.0.0
-REV=d4b66a9f250bf5b220d275b6ecb7762d2d8fc722
+TAG=v1.1.0
+COMMIT=65752d8ebcf766c27d0c72ec2d07151dd2c42764
 
 git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
 cd ~/nix
