@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   settings,
@@ -90,6 +91,23 @@ in
     files = [
       "/etc/machine-id"
     ];
+  };
+
+  # Initrd activation creates /home/<user> before impermanence bind-mounts
+  # /persist/home over /home. The blank-root rollback then discards that
+  # directory. Create it on /persist so the bind mount has a real home.
+  system.activationScripts.ensureUserHome = {
+    deps = [ "users" "groups" ];
+    text = ''
+      home=${lib.escapeShellArg "/persist/home/${settings.username}"}
+      if [ ! -d "$home" ]; then
+        mkdir -p "$home"
+        chmod 0700 "$home"
+      fi
+      chown ${
+        lib.escapeShellArg "${settings.username}:${config.users.users.${settings.username}.group}"
+      } "$home"
+    '';
   };
 
   system.activationScripts.persistSecrets = {

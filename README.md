@@ -134,6 +134,7 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 | settings ignored | `path:.#nixos`, not `.#nixos` |
 | home/wifi reset every boot | `/persist` not `neededForBoot` |
 | can't log in | missing `/persist/passwords/<user>` |
+| no home directory (`~` missing) | `sudo install -d -m 0700 -o $USER -g users /persist/home/$USER`, then log in again |
 | "Booting from Hard Disk…" forever | UEFI VM + Secure Boot off; ISO detached |
 | gum segfault / no disks | `git pull` and retry, or use `bootstrap.sh` |
 | getcwd / cannot get current path | pull latest install.sh; or `cd / && sudo nixos-install --no-root-passwd --flake path:/mnt/persist/etc/nixos#nixos` |
