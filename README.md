@@ -20,8 +20,8 @@ UEFI, network up on the graphical ISO.
 Use a [release tag](https://github.com/the-wittch/ephemeral-nixos/releases) and check the commit hash. Values live in [`RELEASE`](./RELEASE) on that tag:
 
 ```bash
-TAG=v1.0.0
-REV=d4b66a9f250bf5b220d275b6ecb7762d2d8fc722   # must match RELEASE / the GitHub release
+TAG=v1.1.0
+COMMIT=65752d8ebcf766c27d0c72ec2d07151dd2c42764   # must match RELEASE / the GitHub release
 
 git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
 cd ~/nix
