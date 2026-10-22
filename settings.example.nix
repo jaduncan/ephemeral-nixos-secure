@@ -14,8 +14,6 @@
   # plasma | gnome | niri (niri includes Noctalia shell)
   desktop = "plasma";
 
-  # e.g. "https://github.com/you/dotfiles.git"
-  chezmoiRepo = "";
-
+  # chezmoi: /persist/etc/chezmoi-repo as "<git-url> <commit>"
   allowUnfree = true;
 }

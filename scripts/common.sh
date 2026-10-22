@@ -8,6 +8,7 @@ nix_escape() {
   local s=$1
   s=${s//\\/\\\\}
   s=${s//\"/\\\"}
+  s=${s//\$/\\$}
   s=${s//$'\n'/\\n}
   s=${s//$'\r'/\\r}
   s=${s//$'\t'/\\t}
@@ -40,8 +41,19 @@ validate_desktop() {
 }
 
 validate_chezmoi() {
-  [[ -z $1 || $1 =~ ^https://.+ ]] \
-    || die "chezmoiRepo must be empty or an https:// URL"
+  local url=$1
+  [[ -z $url ]] && return 0
+  case $url in
+    https://* | ssh://* | git@*) ;;
+    *) die "chezmoi repo must start with https://, ssh://, or git@" ;;
+  esac
+  [[ $url != *$'\n'* && $url != *$'\r'* && $url != *" "* ]] \
+    || die "chezmoi repo must be a single token"
+}
+
+validate_chezmoi_rev() {
+  [[ $1 =~ ^[0-9a-fA-F]{7,64}$ ]] \
+    || die "chezmoi commit must be 7-64 hex chars"
 }
 
 validate_disk() {

@@ -7,8 +7,8 @@
 }:
 
 let
-  chezmoiRepo = settings.chezmoiRepo or "";
-  chezmoiEnabled = chezmoiRepo != "";
+  home = "/home/${settings.username}";
+  chezmoiSource = "${home}/.local/share/chezmoi";
 in
 {
   networking.hostName = settings.hostname;
@@ -47,8 +47,10 @@ in
       unitConfig.DefaultDependencies = "no";
       serviceConfig.Type = "oneshot";
       script = ''
+        set -euo pipefail
         mkdir -p /btrfs_tmp
         mount -o subvolid=5 /dev/mapper/cryptroot /btrfs_tmp
+        trap 'umount /btrfs_tmp' EXIT
 
         if [[ ! -e /btrfs_tmp/root-blank ]]; then
           echo "ERROR: root-blank subvolume missing" >&2
@@ -56,16 +58,20 @@ in
         fi
 
         if [[ -e /btrfs_tmp/root ]]; then
-          btrfs subvolume list -o /btrfs_tmp/root |
-            cut -f9 -d' ' |
-            while read -r subvolume; do
+          # higher id is a newer child, so delete from the bottom
+          list=$(btrfs subvolume list -o /btrfs_tmp/root)
+          if [[ -n $list ]]; then
+            mapfile -t subvols < <(printf '%s\n' "$list" | cut -d' ' -f9-)
+            for ((i = ''${#subvols[@]} - 1; i >= 0; i--)); do
+              subvolume=''${subvols[i]}
+              [[ -n $subvolume ]] || continue
               btrfs subvolume delete "/btrfs_tmp/$subvolume"
             done
+          fi
           btrfs subvolume delete /btrfs_tmp/root
         fi
 
         btrfs subvolume snapshot /btrfs_tmp/root-blank /btrfs_tmp/root
-        umount /btrfs_tmp
       '';
     };
   };
@@ -93,9 +99,7 @@ in
     ];
   };
 
-  # Initrd activation creates /home/<user> before impermanence bind-mounts
-  # /persist/home over /home. The blank-root rollback then discards that
-  # directory. Create it on /persist so the bind mount has a real home.
+  # blank root drops /home/$USER. create it here.
   system.activationScripts.ensureUserHome = {
     deps = [ "users" "groups" ];
     text = ''
@@ -133,6 +137,13 @@ in
           chmod 644 "$f"
         fi
       done
+
+      if [ -f /persist/etc/chezmoi-repo ]; then
+        chown ${
+          lib.escapeShellArg "${settings.username}:${config.users.users.${settings.username}.group}"
+        } /persist/etc/chezmoi-repo
+        chmod 600 /persist/etc/chezmoi-repo
+      fi
     '';
   };
 
@@ -189,6 +200,7 @@ in
     enableUserSlices = true;
   };
 
+  # rootless. group podman is the root socket, so the user is not in it.
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
@@ -286,7 +298,6 @@ in
       "audio"
       "lp"
       "dialout"
-      "podman"
     ];
     hashedPasswordFile = "/persist/passwords/${settings.username}";
   };
@@ -326,17 +337,57 @@ in
 
   environment.sessionVariables.TERMINAL = "ghostty";
 
-  systemd.user.services.chezmoi-init = lib.mkIf chezmoiEnabled {
-    description = "Initialize chezmoi from settings.chezmoiRepo";
-    wantedBy = [ "default.target" ];
+  # /persist/etc/chezmoi-repo is "<git-url> <commit>", mode 600, owned by the user.
+  systemd.services.chezmoi-init = {
+    description = "Initialize chezmoi from /persist/etc/chezmoi-repo";
+    wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
+    path = [
+      pkgs.git
+      pkgs.chezmoi
+      pkgs.coreutils
+    ];
+    unitConfig.ConditionPathExists = [
+      "/persist/etc/chezmoi-repo"
+      "!${chezmoiSource}"
+    ];
     serviceConfig = {
       Type = "oneshot";
-      ExecCondition = "${pkgs.bash}/bin/bash -c '! test -d %h/.local/share/chezmoi'";
-      ExecStart = "${pkgs.chezmoi}/bin/chezmoi init --apply ${lib.escapeShellArg chezmoiRepo}";
-      RemainAfterExit = true;
+      User = settings.username;
+      Group = "users";
+      WorkingDirectory = home;
+      Environment = "HOME=${home}";
     };
+    script = ''
+      set -euo pipefail
+      line=$(head -n 1 /persist/etc/chezmoi-repo | tr -d '\r')
+      read -r url rev extra <<<"$line"
+      if [[ -z ''${url:-} || -z ''${rev:-} || -n ''${extra:-} ]]; then
+        echo "/persist/etc/chezmoi-repo must be one line: <git-url> <commit>" >&2
+        exit 1
+      fi
+      if [[ ! $rev =~ ^[0-9a-fA-F]{7,64}$ ]]; then
+        echo "chezmoi commit must be 7-64 hex chars" >&2
+        exit 1
+      fi
+      case $url in
+        https://* | ssh://* | git@*) ;;
+        *)
+          echo "chezmoi url must start with https://, ssh://, or git@" >&2
+          exit 1
+          ;;
+      esac
+
+      dest=${lib.escapeShellArg chezmoiSource}
+      mkdir -p "$(dirname "$dest")"
+      cleanup() { rm -rf "$dest"; }
+      trap cleanup ERR
+      git clone -- "$url" "$dest"
+      git -C "$dest" checkout --detach "$rev"
+      chezmoi init --apply
+      trap - ERR
+    '';
   };
 
   nix = {

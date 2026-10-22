@@ -80,7 +80,11 @@ INSTALL_HOSTNAME=$(run_gum input --header "Hostname" --value "${INSTALL_HOSTNAME
 INSTALL_USERNAME=$(run_gum input --header "Username" --value "${INSTALL_USERNAME:-nixuser}" --placeholder "nixuser")
 SWAP_SIZE=$(run_gum input --header "Swap size" --value "${SWAP_SIZE:-4G}" --placeholder "4G")
 TIMEZONE=$(run_gum input --header "Timezone" --value "${TIMEZONE:-UTC}" --placeholder "UTC")
-CHEZMOI_REPO=$(run_gum input --header "chezmoi repo (optional, https only)" --value "${CHEZMOI_REPO:-}" --placeholder "https://github.com/you/dotfiles.git")
+CHEZMOI_REPO=$(run_gum input --header "chezmoi repo (optional)" --value "${CHEZMOI_REPO:-}" --placeholder "https://github.com/you/dotfiles.git")
+CHEZMOI_REV=${CHEZMOI_REV:-}
+if [[ -n $CHEZMOI_REPO ]]; then
+  CHEZMOI_REV=$(run_gum input --header "chezmoi commit" --value "$CHEZMOI_REV" --placeholder "git rev, 7-64 hex chars")
+fi
 ALLOW_UNFREE=$(run_gum choose --header "Allow unfree packages?" "true" "false")
 
 if [[ -z ${FLAKE_INPUTS:-} ]]; then
@@ -95,6 +99,10 @@ validate_username "$INSTALL_USERNAME"
 validate_swap "$SWAP_SIZE"
 validate_timezone "$TIMEZONE"
 validate_chezmoi "$CHEZMOI_REPO"
+if [[ -n $CHEZMOI_REPO ]]; then
+  [[ -n $CHEZMOI_REV ]] || die "chezmoi commit is required with a repo"
+  validate_chezmoi_rev "$CHEZMOI_REV"
+fi
 validate_allow_unfree "$ALLOW_UNFREE"
 validate_flake_inputs "$FLAKE_INPUTS"
 
@@ -112,6 +120,7 @@ export INSTALL_DESKTOP
 export SWAP_SIZE
 export TIMEZONE
 export CHEZMOI_REPO
+export CHEZMOI_REV
 export ALLOW_UNFREE
 export FLAKE_INPUTS
 export FLAKE_ATTR="${FLAKE_ATTR:-nixos}"

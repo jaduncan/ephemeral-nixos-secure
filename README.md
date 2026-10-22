@@ -82,10 +82,11 @@ Sanity check: `sudo touch /ephemeral-test`, drop a file in `~`, reboot. Root fil
   swapSize = "16G";
   timeZone = "UTC";
   desktop = "plasma"; # plasma | gnome | niri
-  chezmoiRepo = "";   # optional https://… dotfiles
   allowUnfree = true;
 }
 ```
+
+Chezmoi is not a setting. One line in `/persist/etc/chezmoi-repo`: `<git-url> <commit>`. The installer writes that file when `CHEZMOI_REPO` and `CHEZMOI_REV` are set.
 
 ### Forks and private flakes
 
@@ -149,8 +150,8 @@ cp hardware-configuration.example.nix hardware-configuration.nix
 sudo nix run github:nix-community/disko -- --flake path:.#nixos --mode destroy,format,mount
 sudo btrfs subvolume list /mnt   # expect root-blank
 
-sudo mkdir -p /mnt/persist/passwords /mnt/persist/etc/ssh /mnt/persist/etc/nixos
-sudo chmod 700 /mnt/persist/passwords
+sudo mkdir -p /mnt/persist/passwords /mnt/persist/etc/ssh /mnt/persist/etc/nixos /mnt/persist/home/nixuser
+sudo chmod 700 /mnt/persist/passwords /mnt/persist/home/nixuser
 mkpasswd -m sha-512 | sudo tee /mnt/persist/passwords/nixuser
 sudo chmod 600 /mnt/persist/passwords/nixuser
 sudo cp -a . /mnt/persist/etc/nixos/

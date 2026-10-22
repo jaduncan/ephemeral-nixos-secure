@@ -10,7 +10,6 @@ let
     swapSize = "16G";
     timeZone = "UTC";
     desktop = "plasma"; # plasma | gnome | niri
-    chezmoiRepo = "";
     allowUnfree = true;
   };
 
@@ -21,15 +20,23 @@ let
   fromSettings = if builtins.pathExists settingsPath then import settingsPath else { };
 
   merged = defaults // fromExample // fromSettings;
+  merged' =
+    if (merged.chezmoiRepo or "") != "" then
+      throw ''
+        Don't put chezmoiRepo in settings.
+        chezmoi: /persist/etc/chezmoi-repo as "<git-url> <commit>".
+      ''
+    else
+      merged;
 in
-assert merged.hostname != "";
-assert merged.username != "";
-assert merged.diskDevice != "";
-assert merged.swapSize != "";
-assert merged.timeZone != "";
-assert builtins.elem merged.desktop [
+assert merged'.hostname != "";
+assert merged'.username != "";
+assert merged'.diskDevice != "";
+assert merged'.swapSize != "";
+assert merged'.timeZone != "";
+assert builtins.elem merged'.desktop [
   "plasma"
   "gnome"
   "niri"
 ];
-merged
+removeAttrs merged' [ "chezmoiRepo" ]

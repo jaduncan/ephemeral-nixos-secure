@@ -29,6 +29,7 @@ INSTALL_USERNAME=${INSTALL_USERNAME:-nixuser}
 SWAP_SIZE=${SWAP_SIZE:-4G}
 TIMEZONE=${TIMEZONE:-UTC}
 CHEZMOI_REPO=${CHEZMOI_REPO:-}
+CHEZMOI_REV=${CHEZMOI_REV:-}
 ALLOW_UNFREE=${ALLOW_UNFREE:-true}
 FLAKE_ATTR=${FLAKE_ATTR:-nixos}
 FLAKE_INPUTS=${FLAKE_INPUTS:-lock}
@@ -64,6 +65,10 @@ validate_username "$INSTALL_USERNAME"
 validate_swap "$SWAP_SIZE"
 validate_timezone "$TIMEZONE"
 validate_chezmoi "$CHEZMOI_REPO"
+if [[ -n $CHEZMOI_REPO ]]; then
+  [[ -n $CHEZMOI_REV ]] || die "CHEZMOI_REV is required with CHEZMOI_REPO"
+  validate_chezmoi_rev "$CHEZMOI_REV"
+fi
 validate_allow_unfree "$ALLOW_UNFREE"
 validate_flake_inputs "$FLAKE_INPUTS"
 validate_flake_attr "$FLAKE_ATTR"
@@ -133,7 +138,6 @@ cat > settings.nix << EOF
   swapSize = "$(nix_escape "$SWAP_SIZE")";
   timeZone = "$(nix_escape "$TIMEZONE")";
   desktop = "$(nix_escape "$INSTALL_DESKTOP")";
-  chezmoiRepo = "$(nix_escape "$CHEZMOI_REPO")";
   allowUnfree = ${ALLOW_UNFREE};
 }
 EOF
@@ -180,6 +184,15 @@ btrfs subvolume list /mnt | grep -q 'root-blank' || die "root-blank missing afte
 mkdir -p /mnt/persist/passwords /mnt/persist/etc/ssh /mnt/persist/etc/nixos
 chmod 700 /mnt/persist/passwords
 chmod 755 /mnt/persist/etc/ssh
+# activation chowns this. it has to exist on /persist before the bind mount.
+install -d -m 0700 "/mnt/persist/home/${INSTALL_USERNAME}"
+if [[ -n $CHEZMOI_REPO ]]; then
+  (
+    umask 077
+    printf '%s\n' "$CHEZMOI_REPO $CHEZMOI_REV" > /mnt/persist/etc/chezmoi-repo
+  )
+  chmod 600 /mnt/persist/etc/chezmoi-repo
+fi
 
 info "login password for ${INSTALL_USERNAME}"
 if command -v mkpasswd >/dev/null; then

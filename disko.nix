@@ -40,9 +40,16 @@
                   "-f"
                 ];
                 postCreateHook = ''
+                  set -euo pipefail
                   MNTPOINT=$(mktemp -d)
                   mount /dev/mapper/cryptroot "$MNTPOINT" -o subvol=/
-                  trap 'umount "$MNTPOINT"; rmdir "$MNTPOINT"' EXIT
+                  cleanup() {
+                    status=$?
+                    umount "$MNTPOINT" || true
+                    rmdir "$MNTPOINT" || true
+                    exit "$status"
+                  }
+                  trap cleanup EXIT
                   btrfs subvolume snapshot -r "$MNTPOINT/root" "$MNTPOINT/root-blank"
                 '';
                 subvolumes = {
