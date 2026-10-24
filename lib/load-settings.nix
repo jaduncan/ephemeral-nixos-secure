@@ -17,9 +17,21 @@ let
   settingsPath = flakeRoot + "/settings.nix";
 
   fromExample = if builtins.pathExists examplePath then import examplePath else { };
-  fromSettings = if builtins.pathExists settingsPath then import settingsPath else { };
+  fromSettings =
+    if builtins.pathExists settingsPath then
+      import settingsPath
+    else
+      throw ''
+        settings.nix is not in this flake.
+        Copy settings.example.nix to settings.nix, then rebuild the installed tree:
+          sudo nixos-rebuild switch --flake path:/persist/etc/nixos#nixos
+      '';
 
-  merged = defaults // fromExample // fromSettings;
+  merged =
+    if !(fromSettings ? username) || fromSettings.username == "" then
+      throw "settings.nix must set username"
+    else
+      defaults // fromExample // fromSettings;
   merged' =
     if (merged.chezmoiRepo or "") != "" then
       throw ''

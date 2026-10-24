@@ -133,6 +133,7 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 | text LUKS prompt | `initrd.systemd` + plymouth (already on here) |
 | black screen at unlock | uncomment `plymouth.use-simpledrm` or add early KMS |
 | settings ignored | `path:.#nixos`, not `.#nixos` |
+| `settings.nix is not in this flake` | `cp settings.example.nix settings.nix`, then `path:.#nixos` |
 | home/wifi reset every boot | `/persist` not `neededForBoot` |
 | can't log in | missing `/persist/passwords/<user>` |
 | no home directory (`~` missing) | `sudo install -d -m 0700 -o $USER -g users /persist/home/$USER`, then log in again |

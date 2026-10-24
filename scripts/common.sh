@@ -94,8 +94,7 @@ require_uefi() {
     || die "UEFI required (this flake uses systemd-boot). Enable OVMF/UEFI in the VM/firmware."
 }
 
-# After clone/checkout: ensure HEAD matches EXPECTED_REV (full or unique prefix).
-# If EXPECTED_REV is unset and REF is a pin (not main/master), read COMMIT= from RELEASE.
+# HEAD must equal EXPECTED_REV. A pin with no EXPECTED_REV uses COMMIT= from RELEASE.
 verify_git_rev() {
   local root=$1
   local want=${EXPECTED_REV:-}
@@ -110,8 +109,10 @@ verify_git_rev() {
   fi
 
   [[ -n $want ]] || return 0
+  [[ $want =~ ^[0-9a-fA-F]{40}$ ]] \
+    || die "EXPECTED_REV must be the full 40-character commit hash"
 
-  if [[ $got == "$want" || $got == "$want"* ]]; then
+  if [[ $got == "$want" ]]; then
     info "verified git rev $got"
     return 0
   fi

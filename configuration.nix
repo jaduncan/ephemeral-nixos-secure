@@ -85,7 +85,15 @@ in
       "/home"
       "/var/lib/nixos"
       "/var/lib/AccountsService"
-      "/var/lib/systemd"
+      "/var/lib/systemd/backlight"
+      "/var/lib/systemd/rfkill"
+      "/var/lib/systemd/timers"
+      "/var/lib/systemd/linger"
+      {
+        directory = "/var/lib/systemd/timesync";
+        user = "systemd-timesync";
+        group = "systemd-timesync";
+      }
       "/var/lib/bluetooth"
       "/var/lib/NetworkManager"
       "/var/lib/cups"
@@ -96,6 +104,7 @@ in
     ];
     files = [
       "/etc/machine-id"
+      "/var/lib/systemd/random-seed"
     ];
   };
 
