@@ -20,8 +20,8 @@ UEFI, network up on the graphical ISO.
 Use a [release tag](https://github.com/the-wittch/ephemeral-nixos/releases) and check the commit hash. Values live in [`RELEASE`](./RELEASE) on that tag:
 
 ```bash
-TAG=v1.1.0
-REV=65752d8ebcf766c27d0c72ec2d07151dd2c42764   # must match RELEASE / the GitHub release
+TAG=v1.1.1
+REV=aad8c687208d170f6ace86fba1f747aa1ebe70ac   # must match RELEASE / the GitHub release
 
 git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
 cd ~/nix
@@ -32,9 +32,9 @@ sudo ./scripts/tui.sh
 Same pin via bootstrap (no interactive clone):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v1.1.0/scripts/bootstrap-tui.sh \
+curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v1.1.1/scripts/bootstrap-tui.sh \
   -o /tmp/bootstrap-tui.sh
-sudo env TAG=v1.1.0 EXPECTED_REV=65752d8ebcf766c27d0c72ec2d07151dd2c42764 \
+sudo env TAG=v1.1.1 EXPECTED_REV=aad8c687208d170f6ace86fba1f747aa1ebe70ac \
   bash /tmp/bootstrap-tui.sh
 ```
 
