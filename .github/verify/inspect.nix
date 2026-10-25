@@ -34,7 +34,12 @@ in
     keysMounted = builtins.hasAttr lzb.pkiBundle c.fileSystems;
   };
   measuredBoot = {
-    inherit (lzb.measuredBoot) enable pcrs pcrlockPolicy pcrlockDirectory;
+    inherit (lzb.measuredBoot)
+      enable
+      pcrs
+      pcrlockPolicy
+      pcrlockDirectory
+      ;
     lanzabooteLimit = lzb.configurationLimit;
     makePolicy = units.systemd-pcrlock-make-policy.serviceConfig.ExecStart;
     mountOrdering = builtins.mapAttrs (_: u: u.unitConfig.RequiresMountsFor or null) (
