@@ -148,7 +148,7 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 
 | symptom | try |
 |---------|-----|
-| text LUKS prompt | `initrd.systemd` + plymouth (already on here) |
+| text LUKS prompt | plymouth is on; systemd initrd is the only kind now |
 | black screen at unlock | uncomment `plymouth.use-simpledrm` or add early KMS |
 | settings ignored | `path:.#nixos`, not `.#nixos` |
 | `settings.json is not in this flake` | `cp settings.example.json settings.json`, then `path:.#nixos` |
