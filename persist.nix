@@ -1,5 +1,6 @@
 {
   config,
+  pkgs,
   lib,
   settings,
   ...
@@ -52,17 +53,58 @@ in
     ];
   };
 
-  # impermanence only bind-mounts a file that already exists on /persist;
-  # otherwise it leaves a symlink and systemd writes the key onto the wiped
-  # root. so make the key in /persist first.
-  system.activationScripts.credentialSecret.text = ''
-    if [ ! -s /persist/var/lib/systemd/credential.secret ]; then
-      mkdir -p /persist/var/lib/systemd
-      SYSTEMD_CREDENTIAL_SECRET=/persist/var/lib/systemd/credential.secret \
-        ${config.systemd.package}/bin/systemd-creds setup
-    fi
-  '';
-  system.activationScripts.persist-files.deps = [ "credentialSecret" ];
+  # impermanence links a persisted file that doesn't exist on /persist yet,
+  # and binds it once it does. it does that in the initrd, where
+  # systemd-creds can't run, so the key is made here, early in stage 2.
+  # on the first boot it also swaps the link for a bind mount; after that
+  # impermanence binds it like the other files.
+  systemd.services.credential-secret-setup = {
+    description = "Create the systemd credential key on /persist";
+    wantedBy = [ "sysinit.target" ];
+    after = [ "local-fs.target" ];
+    before = [ "sysinit.target" ];
+    unitConfig.DefaultDependencies = false;
+    path = [
+      config.systemd.package
+      pkgs.coreutils
+      pkgs.util-linux
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      UMask = "0077";
+    };
+    script = ''
+      key=/persist/var/lib/systemd/credential.secret
+      dest=/var/lib/systemd/credential.secret
+      if [[ ! -s $key ]]; then
+        install -d -m 0755 "$(dirname "$key")"
+        SYSTEMD_CREDENTIAL_SECRET=$key systemd-creds setup
+      fi
+      # systemd opens the key with O_NOFOLLOW, so the first-boot link has to
+      # become the bind mount impermanence would only make on the next boot
+      if [[ -L $dest ]]; then
+        rm "$dest"
+        touch "$dest"
+        mount --bind "$key" "$dest"
+      fi
+    '';
+  };
+
+  # impermanence copies the modes of /persist's directories onto the fresh
+  # root when it recreates their parents, so a 0700 /persist/etc would leave
+  # nobody but root able to read /etc
+  system.activationScripts.persistParentModes = {
+    text = ''
+      for d in /persist /persist/etc /persist/var /persist/var/lib /persist/home; do
+        if [ -d "$d" ]; then
+          chmod 0755 "$d"
+          chown root:root "$d"
+        fi
+      done
+    '';
+  };
+  system.activationScripts.createPersistentStorageDirs.deps = [ "persistParentModes" ];
 
   # blank root drops /home/$USER. create it here.
   system.activationScripts.ensureUserHome = {
