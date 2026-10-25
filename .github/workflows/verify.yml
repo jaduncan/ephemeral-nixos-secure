@@ -67,3 +67,53 @@ jobs:
         with:
           name: inspect
           path: inspect.json
+
+      - name: build scripts
+        run: |
+          nix build --impure -L --no-link --expr \
+            "import ./.github/verify/build.nix { flake = builtins.getFlake \"path:$PWD\"; }"
+
+  iso:
+    needs: eval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: DeterminateSystems/determinate-nix-action@96c5ee93a9dddf2830d31e1da6ec719077336c28 # v3.23.3
+
+      - name: Use example machine files
+        # present so the ISO's source filter is actually exercised
+        run: |
+          cp settings.example.json settings.json
+          cp hardware-configuration.example.nix hardware-configuration.nix
+
+      - name: build ISO
+        run: |
+          nix build -L path:.#iso
+          ls -lh result/iso/
+
+      - name: check embedded flake
+        run: |
+          # the squashfs hides references from the ISO itself, so walk the build closure
+          drv=$(nix path-info --derivation path:.#iso)
+          nix-store -qR --include-outputs "$drv" | grep -v '\.drv$' > closure.txt
+          src=""
+          while read -r p; do
+            if [[ -f $p/iso.nix && -f $p/scripts/tui.sh ]]; then src=$p; fi
+          done < closure.txt
+          [[ -n $src ]] || { echo "embedded flake not found in ISO closure"; exit 1; }
+          ls -la "$src"
+          for f in settings.json settings.nix hardware-configuration.nix; do
+            [[ ! -e $src/$f ]] || { echo "$f leaked into the ISO"; exit 1; }
+          done
+          [[ -x $src/scripts/tui.sh && -x $src/scripts/install.sh ]]
+          grep -E -- '-(ephemeral-install|gum-[0-9][0-9.]*|git-[0-9][0-9.]*)$' closure.txt
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: iso
+          path: result/iso/*.iso
+          retention-days: 5
+          compression-level: 0

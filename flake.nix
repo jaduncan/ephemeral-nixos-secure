@@ -44,9 +44,17 @@
           lanzaboote.nixosModules.lanzaboote
         ];
       };
+
+      iso = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs.flakeSrc = ./.;
+        modules = [ ./iso.nix ];
+      };
     in
     {
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
+
+      packages.x86_64-linux.iso = iso.config.system.build.isoImage;
 
       nixosConfigurations = {
         nixos = mkSystem;
