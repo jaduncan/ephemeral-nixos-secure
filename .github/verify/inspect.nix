@@ -27,9 +27,9 @@ in
     prepareEnroll = {
       inherit (units.prepare-sb-auto-enroll) after unitConfig;
     };
-    keysPersisted = builtins.filter (
-      d: d.directory == lzb.pkiBundle
-    ) c.environment.persistence."/persist".directories;
+    keysPersisted = map (d: { inherit (d) directory mode; }) (
+      builtins.filter (d: d.directory == lzb.pkiBundle) c.environment.persistence."/persist".directories
+    );
     keysMounted = builtins.hasAttr lzb.pkiBundle c.fileSystems;
   };
 }
