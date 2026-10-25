@@ -1,7 +1,10 @@
 name: ci
 
 on:
+  # other branches get CI through their pull request, not twice
   push:
+    branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
