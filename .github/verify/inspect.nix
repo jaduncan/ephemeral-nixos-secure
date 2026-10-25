@@ -7,7 +7,6 @@ let
 in
 {
   toplevel = c.system.build.toplevel.drvPath;
-  initrdSystemd = c.boot.initrd.systemd.enable;
   systemdBoot = c.boot.loader.systemd-boot.enable;
   configurationLimit = c.boot.loader.systemd-boot.configurationLimit;
   cryptroot = {

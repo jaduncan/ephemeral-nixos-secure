@@ -10,6 +10,11 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    # -o pipefail, so a failing nix eval before | tee fails the step
+    shell: bash
+
 jobs:
   eval:
     runs-on: ubuntu-latest
