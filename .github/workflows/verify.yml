@@ -42,7 +42,12 @@ jobs:
         run: nix run --inputs-from path:. nixpkgs#shellcheck -- -x -P SCRIPTDIR scripts/*.sh
 
       - name: nixfmt
-        run: git ls-files -z '*.nix' | xargs -0 nix run --inputs-from path:. nixpkgs#nixfmt -- --check
+        run: |
+          if ! git ls-files -z '*.nix' | xargs -0 nix run --inputs-from path:. nixpkgs#nixfmt -- --check; then
+            git ls-files -z '*.nix' | xargs -0 nix run --inputs-from path:. nixpkgs#nixfmt --
+            git diff
+            exit 1
+          fi
 
       - name: Use example machine files
         run: |
