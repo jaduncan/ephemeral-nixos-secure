@@ -10,6 +10,10 @@
     };
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -17,6 +21,7 @@
       nixpkgs,
       impermanence,
       disko,
+      lanzaboote,
       ...
     }:
     let
@@ -36,11 +41,21 @@
           ./desktop.nix
           ./hardware-configuration.nix
           impermanence.nixosModules.impermanence
+          lanzaboote.nixosModules.lanzaboote
         ];
+      };
+
+      # installer ISO: nix build path:.#iso
+      iso = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { flakeSrc = ./.; };
+        modules = [ ./iso.nix ];
       };
     in
     {
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
+
+      packages.x86_64-linux.iso = iso.config.system.build.isoImage;
 
       nixosConfigurations = {
         nixos = mkSystem;

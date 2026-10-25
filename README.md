@@ -59,7 +59,9 @@ curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scr
 
 You'll set a LUKS passphrase and a login password. Then detach the ISO and reboot.
 
-**VMs:** UEFI (Secure Boot off), VirtIO disk (`/dev/vda`), ~64G disk / 8G RAM is enough. Plymouth can look weird on virtual GPUs; unlock still works.
+**Secure Boot / TPM (this fork, untested):** lanzaboote signs the boot chain with keys in `/persist/etc/secureboot`. Put the firmware in Setup Mode before installing so keys auto-enroll. After the first boot into Secure Boot, run `sudo enroll-tpm` to add a recovery key and bind LUKS to the TPM (PCR 7). Build the ISO with `nix build path:.#iso` on x86_64 Linux.
+
+**VMs:** UEFI with OVMF Secure Boot in Setup Mode and swtpm, or Secure Boot off to skip it, VirtIO disk (`/dev/vda`), ~64G disk / 8G RAM is enough. Plymouth can look weird on virtual GPUs; unlock still works.
 
 ## After install
 

@@ -4,9 +4,10 @@
 
 {
   boot = {
-    loader.systemd-boot.enable = true;
+    # bootloader is lanzaboote, see secureboot.nix
     loader.systemd-boot.editor = false;
     loader.systemd-boot.configurationLimit = 5;
+    initrd.systemd.enable = true;
     loader.efi.canTouchEfiVariables = true;
     loader.timeout = 3;
 
