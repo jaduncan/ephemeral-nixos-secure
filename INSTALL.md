@@ -5,8 +5,8 @@ Full context: [README](./README.md). Pin values: [`RELEASE`](./RELEASE).
 **Pinned TUI** (recommended):
 
 ```bash
-TAG=v1.3.1
-REV=6296da38ea5bfe226ca862fafbf09a1f9222c98e
+TAG=v1.4.0
+REV=7056f3a2745c5b9400f6c06a015c31f17dee7b83
 
 git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
 cd ~/nix
@@ -24,8 +24,8 @@ cd ~/nix && sudo ./scripts/tui.sh
 **Plain** (whole disk):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v1.3.1/scripts/bootstrap.sh \
-  | sudo env TAG=v1.3.1 EXPECTED_REV=6296da38ea5bfe226ca862fafbf09a1f9222c98e SWAP_SIZE=4G \
+curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v1.4.0/scripts/bootstrap.sh \
+  | sudo env TAG=v1.4.0 EXPECTED_REV=7056f3a2745c5b9400f6c06a015c31f17dee7b83 SWAP_SIZE=4G \
     bash -s -- /dev/vda
 ```
 
