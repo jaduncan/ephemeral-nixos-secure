@@ -47,8 +47,22 @@ in
     files = [
       "/etc/machine-id"
       "/var/lib/systemd/random-seed"
+      # host key for encrypted service credentials (libvirt uses one)
+      "/var/lib/systemd/credential.secret"
     ];
   };
+
+  # impermanence only bind-mounts a file that already exists on /persist;
+  # otherwise it leaves a symlink and systemd writes the key onto the wiped
+  # root. so make the key in /persist first.
+  system.activationScripts.credentialSecret.text = ''
+    if [ ! -s /persist/var/lib/systemd/credential.secret ]; then
+      mkdir -p /persist/var/lib/systemd
+      SYSTEMD_CREDENTIAL_SECRET=/persist/var/lib/systemd/credential.secret \
+        ${config.systemd.package}/bin/systemd-creds setup
+    fi
+  '';
+  system.activationScripts.persist-files.deps = [ "credentialSecret" ];
 
   # blank root drops /home/$USER. create it here.
   system.activationScripts.ensureUserHome = {

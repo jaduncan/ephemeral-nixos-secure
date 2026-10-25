@@ -11,6 +11,8 @@
     ./persist.nix
     ./users.nix
     ./unfree.nix
+    ./hardening.nix
+    ./flathub.nix
   ];
 
   networking.hostName = settings.hostname;
@@ -40,27 +42,9 @@
 
   services.fwupd.enable = true;
 
-  services.flatpak.enable = true;
   environment.persistence."/persist".directories = [
-    "/var/lib/flatpak"
     "/var/lib/containers"
   ];
-
-  systemd.services.flatpak-flathub = {
-    description = "Add Flathub Flatpak remote";
-    wantedBy = [ "multi-user.target" ];
-    wants = [ "network-online.target" ];
-    after = [ "network-online.target" ];
-    path = [ pkgs.flatpak ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      flatpak remote-add --system --if-not-exists flathub \
-        https://dl.flathub.org/repo/flathub.flatpakrepo
-    '';
-  };
 
   zramSwap = {
     enable = true;

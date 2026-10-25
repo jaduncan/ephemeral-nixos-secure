@@ -79,6 +79,29 @@ in
       Group = group;
       WorkingDirectory = home;
       Environment = "HOME=${home}";
+      # clones over the network and writes dotfiles into home, nothing else.
+      # chezmoi scripts that need sudo won't work here; run them by hand.
+      ProtectSystem = "strict";
+      ReadWritePaths = [ home ];
+      PrivateTmp = true;
+      PrivateDevices = true;
+      NoNewPrivileges = true;
+      CapabilityBoundingSet = [ "" ];
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      ProtectControlGroups = true;
+      ProtectClock = true;
+      ProtectHostname = true;
+      RestrictAddressFamilies = [
+        "AF_UNIX"
+        "AF_INET"
+        "AF_INET6"
+      ];
+      RestrictNamespaces = true;
+      RestrictSUIDSGID = true;
+      LockPersonality = true;
+      SystemCallArchitectures = "native";
     };
     script = ''
       set -euo pipefail
