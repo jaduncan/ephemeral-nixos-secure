@@ -50,7 +50,7 @@ if ! run_gum style "ok" >/dev/null 2>&1; then
 fi
 
 run_gum style --border rounded --padding "0 2" --border-foreground 212 \
-  "EphemeralOS install" "LUKS + btrfs + impermanence"
+  "EphemeralOS install" "LUKS + btrfs + impermanence + Secure Boot + TPM2"
 
 if [[ -z ${DISK:-} ]]; then
   mapfile -t disk_paths < <(lsblk -dpn -o NAME,TYPE | awk '$2 == "disk" { print $1 }')

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Preferred installer entry (gum TUI). For a plain/no-gum path use bootstrap.sh.
 #
-#   curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap-tui.sh \
+#   curl -fsSL https://raw.githubusercontent.com/jaduncan/ephemeral-nixos-secure/main/scripts/bootstrap-tui.sh \
 #     -o /tmp/bootstrap-tui.sh && sudo bash /tmp/bootstrap-tui.sh
 #
 # Needs a real TTY (download+run or clone). Don't pipe into sudo bash.
@@ -11,7 +11,7 @@ set -euo pipefail
 die() { echo "error: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-DEFAULT_REPO_URL="https://github.com/the-wittch/ephemeral-nixos.git"
+DEFAULT_REPO_URL="https://github.com/jaduncan/ephemeral-nixos-secure.git"
 
 REPO_URL="${REPO_URL:-$DEFAULT_REPO_URL}"
 BRANCH="${TAG:-${BRANCH:-main}}"

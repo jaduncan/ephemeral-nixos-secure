@@ -1,6 +1,6 @@
 # Ephemeral NixOS
 
-[![CI](https://github.com/the-wittch/ephemeral-nixos/actions/workflows/ci.yml/badge.svg)](https://github.com/the-wittch/ephemeral-nixos/actions/workflows/ci.yml)
+[![CI](https://github.com/jaduncan/ephemeral-nixos-secure/actions/workflows/ci.yml/badge.svg)](https://github.com/jaduncan/ephemeral-nixos-secure/actions/workflows/ci.yml)
 
 NixOS with an encrypted btrfs disk, root rolled back to blank every boot, and `/home` (plus a few system paths) kept on `/persist`. Desktop is Plasma, GNOME, or niri+Noctalia — pick at install.
 
@@ -17,13 +17,13 @@ UEFI, network up on the graphical ISO.
 
 ### Pinned install (recommended)
 
-Use a [release tag](https://github.com/the-wittch/ephemeral-nixos/releases) and check the commit hash. Values live in [`RELEASE`](./RELEASE) on that tag:
+Use a [release tag](https://github.com/jaduncan/ephemeral-nixos-secure/releases) and check the commit hash. Values live in [`RELEASE`](./RELEASE) on that tag:
 
 ```bash
 TAG=v1.5.0
 REV=e65fc7230e117a9705eda65adc9e5871c870d57d   # must match RELEASE / the GitHub release
 
-git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
+git clone --branch "$TAG" --depth 1 https://github.com/jaduncan/ephemeral-nixos-secure.git ~/nix
 cd ~/nix
 [[ $(git rev-parse HEAD) == "$REV" ]] || { echo "hash mismatch"; exit 1; }
 sudo ./scripts/tui.sh
@@ -32,18 +32,18 @@ sudo ./scripts/tui.sh
 Same pin via bootstrap (no interactive clone):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v1.5.0/scripts/bootstrap-tui.sh \
+curl -fsSL https://raw.githubusercontent.com/jaduncan/ephemeral-nixos-secure/v1.5.0/scripts/bootstrap-tui.sh \
   -o /tmp/bootstrap-tui.sh
 sudo env TAG=v1.5.0 EXPECTED_REV=e65fc7230e117a9705eda65adc9e5871c870d57d \
   bash /tmp/bootstrap-tui.sh
 ```
 
-Copy the tag and commit from the latest [GitHub release](https://github.com/the-wittch/ephemeral-nixos/releases) (or from [`RELEASE`](./RELEASE) on that tag) if these examples are stale.
+Copy the tag and commit from the latest [GitHub release](https://github.com/jaduncan/ephemeral-nixos-secure/releases) (or from [`RELEASE`](./RELEASE) on that tag) if these examples are stale.
 
 ### Floating `main` (dev)
 
 ```bash
-git clone https://github.com/the-wittch/ephemeral-nixos.git ~/nix
+git clone https://github.com/jaduncan/ephemeral-nixos-secure.git ~/nix
 cd ~/nix
 sudo ./scripts/tui.sh
 ```
@@ -51,7 +51,7 @@ sudo ./scripts/tui.sh
 Plain / no gum:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \
+curl -fsSL https://raw.githubusercontent.com/jaduncan/ephemeral-nixos-secure/main/scripts/bootstrap.sh \
   | sudo env SWAP_SIZE=4G bash -s -- /dev/vda
 ```
 
@@ -59,7 +59,19 @@ curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scr
 
 You'll set a LUKS passphrase and a login password. Then detach the ISO and reboot.
 
-**VMs:** UEFI (Secure Boot off), VirtIO disk (`/dev/vda`), ~64G disk / 8G RAM is enough. Plymouth can look weird on virtual GPUs; unlock still works.
+**VMs:** UEFI with an emulated TPM2 (swtpm), Secure Boot firmware in Setup Mode (OVMF with no keys enrolled), VirtIO disk (`/dev/vda`), ~64G disk / 8G RAM is enough. Plymouth can look weird on virtual GPUs; unlock still works.
+
+## Secure Boot and TPM2
+
+Needs UEFI, a TPM2 that `systemd-pcrlock` supports (also while installing), and the firmware in Secure Boot Setup Mode.
+
+1. Install. The first boot is unsigned: lanzaboote generates keys in `/var/lib/sbctl` (on `/persist`), stages them on the ESP, re-signs it and reboots. systemd-boot enrolls the keys on that reboot, with Microsoft's kept for option ROMs.
+2. Check `bootctl status` shows `Secure Boot: enabled`.
+3. Run `sudo enroll-tpm`. It adds a recovery key (write it down) and a PIN-protected TPM2 slot bound to a systemd-pcrlock policy over PCRs 0, 4 and 7. Lanzaboote updates the policy on every rebuild.
+
+The LUKS passphrase keeps working. Firmware updates change PCR 0, so expect the passphrase or recovery key until the next rebuild. Measured boot keeps at most 4 generations.
+
+Build the installer ISO with `nix build path:.#iso` (x86_64 Linux), boot it and run `sudo ephemeral-install`.
 
 ## After install
 

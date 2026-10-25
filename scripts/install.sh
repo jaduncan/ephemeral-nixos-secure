@@ -17,6 +17,17 @@ cd "$FLAKE_ROOT"
 command -v nix >/dev/null || die "nix not found"
 command -v lsblk >/dev/null || die "lsblk not found"
 
+# measured boot (secureboot.nix) runs systemd-pcrlock inside nixos-install
+[[ -e /dev/tpmrm0 ]] || die "no TPM2 (/dev/tpmrm0). In a VM, add an emulated TPM2 (swtpm)."
+pcrlock=/run/current-system/systemd/lib/systemd/systemd-pcrlock
+if [[ -x $pcrlock && $("$pcrlock" is-supported 2>/dev/null) != yes ]]; then
+  die "this TPM is not supported by systemd-pcrlock"
+fi
+setup_mode=/sys/firmware/efi/efivars/SetupMode-8be4df61-93ca-11d2-aa0d-00e098032b8c
+if [[ ! -r $setup_mode || $(od -An -tu1 -j4 -N1 "$setup_mode" | tr -d ' ') != 1 ]]; then
+  info "warning: firmware is not in Secure Boot Setup Mode; keys will not be enrolled"
+fi
+
 export NIX_CONFIG="${NIX_CONFIG-}
 experimental-features = nix-command flakes
 http2 = false
@@ -227,6 +238,8 @@ fi
 cat << EOF
 
 done. detach ISO, reboot, unlock LUKS, log in as ${INSTALL_USERNAME}.
+the first boot generates Secure Boot keys and reboots once to enroll them.
+then: sudo enroll-tpm   (recovery key + TPM2 unlock with a PIN)
 rebuilds: cd /persist/etc/nixos && sudo nixos-rebuild switch --flake path:.#${FLAKE_ATTR}
 
 EOF
