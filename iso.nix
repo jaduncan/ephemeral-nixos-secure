@@ -47,7 +47,8 @@ in
       runtimeInputs = [ pkgs.coreutils ];
       text = ''
         dir=$(mktemp -d /tmp/ephemeral-nixos.XXXXXX)
-        cp -rT /etc/ephemeral-nixos "$dir"
+        # the store path, not /etc/ephemeral-nixos: that is a symlink, which cp -r copies as-is
+        cp -rT ${src} "$dir"
         chmod -R u+w "$dir"
         exec "$dir/scripts/tui.sh" "$@"
       '';

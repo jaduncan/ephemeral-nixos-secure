@@ -111,6 +111,21 @@ jobs:
           [[ -x $src/scripts/tui.sh && -x $src/scripts/install.sh ]]
           grep -E -- '-(ephemeral-install|gum-[0-9][0-9.]*|git-[0-9][0-9.]*)$' closure.txt
 
+      - name: run ephemeral-install
+        # as a normal user: copies the flake, execs tui.sh, which stops at its root check
+        run: |
+          wrapper=$(grep -E -- '-ephemeral-install$' closure.txt)/bin/ephemeral-install
+          set +e
+          out=$("$wrapper" 2>&1)
+          status=$?
+          set -e
+          echo "$out"
+          [[ $status -ne 0 && $out == *"run as root"* ]] || { echo "unexpected result ($status)"; exit 1; }
+          copy=$(ls -d /tmp/ephemeral-nixos.* | tail -1)
+          [[ -f $copy/flake.nix && -w $copy/scripts/install.sh && -x $copy/scripts/install.sh ]] \
+            || { echo "copy at $copy is incomplete or not writable"; ls -la "$copy" "$copy/scripts"; exit 1; }
+          echo "ok: $copy"
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: iso
