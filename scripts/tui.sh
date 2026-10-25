@@ -85,7 +85,6 @@ CHEZMOI_REV=${CHEZMOI_REV:-}
 if [[ -n $CHEZMOI_REPO ]]; then
   CHEZMOI_REV=$(run_gum input --header "chezmoi commit" --value "$CHEZMOI_REV" --placeholder "full 40-character commit hash")
 fi
-ALLOW_UNFREE=$(run_gum choose --header "Allow unfree packages?" "true" "false")
 
 if [[ -z ${FLAKE_INPUTS:-} ]]; then
   flake_pick=$(run_gum choose --header "Flake inputs:" \
@@ -103,13 +102,12 @@ if [[ -n $CHEZMOI_REPO ]]; then
   [[ -n $CHEZMOI_REV ]] || die "chezmoi commit is required with a repo"
   validate_chezmoi_rev "$CHEZMOI_REV"
 fi
-validate_allow_unfree "$ALLOW_UNFREE"
 validate_flake_inputs "$FLAKE_INPUTS"
 
 run_gum style --border rounded --padding "0 2" --border-foreground 196 \
   "WILL ERASE: $DISK" \
   "desktop=$INSTALL_DESKTOP  host=$INSTALL_HOSTNAME  user=$INSTALL_USERNAME" \
-  "swap=$SWAP_SIZE  tz=$TIMEZONE  unfree=$ALLOW_UNFREE  inputs=$FLAKE_INPUTS"
+  "swap=$SWAP_SIZE  tz=$TIMEZONE  inputs=$FLAKE_INPUTS"
 
 run_gum confirm "Erase $DISK and install?" || die "aborted"
 
@@ -121,7 +119,6 @@ export SWAP_SIZE
 export TIMEZONE
 export CHEZMOI_REPO
 export CHEZMOI_REV
-export ALLOW_UNFREE
 export FLAKE_INPUTS
 export FLAKE_ATTR="${FLAKE_ATTR:-nixos}"
 export CONFIRM=YES

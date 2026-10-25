@@ -1,0 +1,28 @@
+name: update flake.lock
+
+on:
+  schedule:
+    # mondays 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: DeterminateSystems/determinate-nix-action@96c5ee93a9dddf2830d31e1da6ec719077336c28 # v3.23.3
+
+      - uses: DeterminateSystems/update-flake-lock@da03c0f078bc4b2c37ee4f7e072d34bf8f188bb3 # v29
+        with:
+          # PRs opened with the default token don't start CI. A fine-grained
+          # token (contents + pull requests: write) in FLAKE_UPDATE_TOKEN does.
+          token: ${{ secrets.FLAKE_UPDATE_TOKEN || github.token }}
+          pr-title: "flake.lock: update"

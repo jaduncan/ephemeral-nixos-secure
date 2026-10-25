@@ -4,18 +4,6 @@
 die() { echo "error: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-# Nix double-quoted string escape
-nix_escape() {
-  local s=$1
-  s=${s//\\/\\\\}
-  s=${s//\"/\\\"}
-  s=${s//\$/\\$}
-  s=${s//$'\n'/\\n}
-  s=${s//$'\r'/\\r}
-  s=${s//$'\t'/\\t}
-  printf '%s' "$s"
-}
-
 validate_hostname() {
   [[ $1 =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] \
     || die "invalid hostname: $1 (letters/digits/hyphen)"
@@ -67,13 +55,6 @@ validate_disk() {
   if [[ $d =~ [0-9]+$ && ! $d =~ nvme[0-9]+n[0-9]+$ && ! $d =~ mmcblk[0-9]+$ && ! $d =~ loop[0-9]+$ ]]; then
     die "looks like a partition: $d (use the whole disk, e.g. /dev/vda)"
   fi
-}
-
-validate_allow_unfree() {
-  case $1 in
-    true | false) ;;
-    *) die "allowUnfree must be true or false (got: $1)" ;;
-  esac
 }
 
 # lock = use flake.lock as-is (create if missing)

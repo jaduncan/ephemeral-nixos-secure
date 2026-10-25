@@ -1,4 +1,5 @@
-# Local / private machine identity (use settings.example.nix as the template)
+# Local / private machine identity (use settings.example.json as the template)
+settings.json
 settings.nix
 
 # Machine-specific detected hardware (Disko owns filesystems)

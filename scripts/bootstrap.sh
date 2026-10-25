@@ -101,7 +101,6 @@ export SWAP_SIZE="${SWAP_SIZE:-4G}"
 export TIMEZONE="${TIMEZONE:-UTC}"
 export CHEZMOI_REPO="${CHEZMOI_REPO:-}"
 export CHEZMOI_REV="${CHEZMOI_REV:-}"
-export ALLOW_UNFREE="${ALLOW_UNFREE:-true}"
 export FLAKE_INPUTS="${FLAKE_INPUTS:-lock}"
 export FLAKE_ATTR="${FLAKE_ATTR:-nixos}"
 

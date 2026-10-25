@@ -3,6 +3,7 @@ name: ci
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,9 +26,9 @@ jobs:
 
       - name: Use example machine files
         run: |
-          cp settings.example.nix settings.nix
+          cp settings.example.json settings.json
           cp hardware-configuration.example.nix hardware-configuration.nix
 
       - name: nix flake check
-        # path:. so gitignored settings/hardware are visible; --no-build = eval only (not a full Plasma closure)
+        # path:. so gitignored settings.json and hardware are visible; --no-build = eval only (not a full Plasma closure)
         run: nix flake check path:. --no-write-lock-file --no-build

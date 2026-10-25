@@ -10,6 +10,7 @@
     ./boot.nix
     ./persist.nix
     ./users.nix
+    ./unfree.nix
   ];
 
   networking.hostName = settings.hostname;
@@ -170,6 +171,8 @@
         "flakes"
       ];
       trusted-users = [ "root" ];
+      # only admins talk to the nix daemon
+      allowed-users = [ "@wheel" ];
       auto-optimise-store = true;
     };
     gc = {
@@ -178,8 +181,6 @@
       options = "--delete-older-than 30d";
     };
   };
-
-  nixpkgs.config.allowUnfree = settings.allowUnfree;
 
   system.stateVersion = "25.05";
 }

@@ -9,7 +9,7 @@ disk → ESP (/boot)
      → LUKS → btrfs { root, root-blank, nix, persist, log, swap }
 ```
 
-Machine stuff goes in gitignored `settings.nix`. Passwords live in `/persist/passwords/`, not in the flake.
+Machine stuff goes in gitignored `settings.json`. Passwords live in `/persist/passwords/`, not in the flake.
 
 ## Install
 
@@ -72,25 +72,38 @@ sudo nixos-rebuild switch --flake path:.#nixos
 
 Sanity check: `sudo touch /ephemeral-test`, drop a file in `~`, reboot. Root file should vanish; home file should stay.
 
-### settings.nix
+### settings.json
 
-```nix
+```json
 {
-  hostname = "nixos";
-  username = "nixuser";
-  diskDevice = "/dev/nvme0n1"; # whole disk, not a partition
-  swapSize = "16G";
-  timeZone = "UTC";
-  desktop = "plasma"; # plasma | gnome | niri
-  allowUnfree = true;
+  "hostname": "nixos",
+  "username": "nixuser",
+  "diskDevice": "/dev/nvme0n1",
+  "swapSize": "16G",
+  "timeZone": "UTC",
+  "desktop": "plasma"
 }
 ```
+
+`diskDevice` is the whole disk, not a partition. `desktop` is `plasma`, `gnome`, or `niri`.
+
+Installs from before v1.3 have `settings.nix` instead. It still works, and the rebuild prints a warning with the one-line command that converts it.
+
+### Unfree packages
+
+Nothing unfree is allowed unless it's listed. A module that needs an unfree package names it next to the package:
+
+```nix
+ephemeral.unfreePackages = [ "steam" "steam-unwrapped" ];
+```
+
+A missing name fails the build with the name to add.
 
 Chezmoi is not a setting. One line in `/persist/etc/chezmoi-repo`: `<git-url> <commit>`, where the commit is the full 40-character hash. The installer writes that file when `CHEZMOI_REPO` and `CHEZMOI_REV` are set.
 
 ### Forks and private flakes
 
-Install leaves the flake at `/persist/etc/nixos`. You can keep using this repo as-is and only edit `settings.nix`, or treat that directory as your own flake: fork this project, push to a private remote, and commit machine-specific modules there (DNS, Steam, extra imports, whatever). The public tree is meant to stay a small template; how you split files afterward is up to you.
+Install leaves the flake at `/persist/etc/nixos`. You can keep using this repo as-is and only edit `settings.json`, or treat that directory as your own flake: fork this project, push to a private remote, and commit machine-specific modules there (DNS, Steam, extra imports, whatever). The public tree is meant to stay a small template; how you split files afterward is up to you.
 
 A public example of that split is [ephemeral-nixos-config](https://github.com/the-wittch/ephemeral-nixos-config): the same install, then extra modules for one machine. It tracks this template on its own and may not match a given release tag.
 
@@ -107,7 +120,9 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 | `persist.nix` | impermanence |
 | `users.nix` | user, sudo, chezmoi |
 | `desktop.nix` | Plasma / GNOME / niri |
-| `settings.example.nix` | template → `settings.nix` |
+| `settings.example.json` | template → `settings.json` |
+| `unfree.nix` | unfree allowlist (`ephemeral.unfreePackages`) |
+| `lib/read-data.nix` | loads `settings.json` (or a legacy `settings.nix`) |
 | `scripts/tui.sh` | gum installer |
 | `scripts/bootstrap.sh` | curl / no-gum installer |
 | `scripts/install.sh` | actual disko + nixos-install |
@@ -136,7 +151,7 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 | text LUKS prompt | `initrd.systemd` + plymouth (already on here) |
 | black screen at unlock | uncomment `plymouth.use-simpledrm` or add early KMS |
 | settings ignored | `path:.#nixos`, not `.#nixos` |
-| `settings.nix is not in this flake` | `cp settings.example.nix settings.nix`, then `path:.#nixos` |
+| `settings.json is not in this flake` | `cp settings.example.json settings.json`, then `path:.#nixos` |
 | home/wifi reset every boot | `/persist` not `neededForBoot` |
 | can't log in | missing `/persist/passwords/<user>` |
 | no home directory (`~` missing) | `sudo install -d -m 0700 -o $USER -g users /persist/home/$USER`, then log in again |
@@ -147,7 +162,7 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 ## Manual install
 
 ```bash
-cp settings.example.nix settings.nix
+cp settings.example.json settings.json
 cp hardware-configuration.example.nix hardware-configuration.nix
 # edit settings
 

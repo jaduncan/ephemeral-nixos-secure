@@ -1,8 +1,10 @@
-# cp settings.example.nix settings.nix
+# cp settings.example.json settings.json
 
 { lib, flakeRoot }:
 
 let
+  readData = import ./read-data.nix { inherit lib; };
+
   defaults = {
     hostname = "nixos";
     username = "nixuser";
@@ -10,24 +12,17 @@ let
     swapSize = "16G";
     timeZone = "UTC";
     desktop = "plasma"; # plasma | gnome | niri
-    allowUnfree = true;
   };
 
-  settingsPath = flakeRoot + "/settings.nix";
-
-  fromSettings =
-    if builtins.pathExists settingsPath then
-      import settingsPath
-    else
-      throw ''
-        settings.nix is not in this flake.
-        Copy settings.example.nix to settings.nix, then rebuild the installed tree:
-          sudo nixos-rebuild switch --flake path:/persist/etc/nixos#nixos
-      '';
+  fromSettings = readData (flakeRoot + "/settings") (throw ''
+    settings.json is not in this flake.
+    Copy settings.example.json to settings.json, then rebuild the installed tree:
+      sudo nixos-rebuild switch --flake path:/persist/etc/nixos#nixos
+  '');
 
   merged =
     if !(fromSettings ? username) || fromSettings.username == "" then
-      throw "settings.nix must set username"
+      throw "settings must set username"
     else
       defaults // fromSettings;
   merged' =
@@ -37,7 +32,9 @@ let
         chezmoi: /persist/etc/chezmoi-repo as "<git-url> <commit>".
       ''
     else
-      merged;
+      lib.warnIf (merged ? allowUnfree)
+        "settings.allowUnfree is no longer used. Unfree packages are listed in ephemeral.unfreePackages."
+        merged;
 in
 assert merged'.hostname != "";
 assert merged'.username != "";
@@ -49,4 +46,7 @@ assert builtins.elem merged'.desktop [
   "gnome"
   "niri"
 ];
-removeAttrs merged' [ "chezmoiRepo" ]
+removeAttrs merged' [
+  "chezmoiRepo"
+  "allowUnfree"
+]

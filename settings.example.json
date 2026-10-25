@@ -1,0 +1,8 @@
+{
+  "hostname": "nixos",
+  "username": "nixuser",
+  "diskDevice": "/dev/nvme0n1",
+  "swapSize": "16G",
+  "timeZone": "UTC",
+  "desktop": "plasma"
+}

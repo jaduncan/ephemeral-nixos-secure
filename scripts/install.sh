@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # sudo DISK=/dev/vda ./scripts/install.sh
-# optional: INSTALL_* SWAP_SIZE TIMEZONE CHEZMOI_REPO ALLOW_UNFREE FLAKE_INPUTS=lock|update CONFIRM=YES
+# optional: INSTALL_* SWAP_SIZE TIMEZONE CHEZMOI_REPO FLAKE_INPUTS=lock|update CONFIRM=YES
 
 set -euo pipefail
 
@@ -30,7 +30,6 @@ SWAP_SIZE=${SWAP_SIZE:-4G}
 TIMEZONE=${TIMEZONE:-UTC}
 CHEZMOI_REPO=${CHEZMOI_REPO:-}
 CHEZMOI_REV=${CHEZMOI_REV:-}
-ALLOW_UNFREE=${ALLOW_UNFREE:-true}
 FLAKE_ATTR=${FLAKE_ATTR:-nixos}
 FLAKE_INPUTS=${FLAKE_INPUTS:-lock}
 
@@ -69,7 +68,6 @@ if [[ -n $CHEZMOI_REPO ]]; then
   [[ -n $CHEZMOI_REV ]] || die "CHEZMOI_REV is required with CHEZMOI_REPO"
   validate_chezmoi_rev "$CHEZMOI_REV"
 fi
-validate_allow_unfree "$ALLOW_UNFREE"
 validate_flake_inputs "$FLAKE_INPUTS"
 validate_flake_attr "$FLAKE_ATTR"
 info "desktop=$INSTALL_DESKTOP inputs=$FLAKE_INPUTS"
@@ -100,13 +98,13 @@ tar -C "$FLAKE_ROOT" \
   --exclude='result' \
   --exclude='result-*' \
   --exclude='.direnv' \
+  --exclude='settings.json' \
   --exclude='settings.nix' \
   --exclude='hardware-configuration.nix' \
   -cf - . | tar -C "$STAGE" -xf -
 
 cd "$STAGE"
 
-cp -f settings.example.nix settings.nix
 cp -f hardware-configuration.example.nix hardware-configuration.nix
 
 if lsblk -d -o TRAN -n "$DISK" 2>/dev/null | grep -qi virtio \
@@ -130,17 +128,25 @@ if lsblk -d -o TRAN -n "$DISK" 2>/dev/null | grep -qi virtio \
 EOF
 fi
 
-cat > settings.nix << EOF
-{
-  hostname = "$(nix_escape "$INSTALL_HOSTNAME")";
-  username = "$(nix_escape "$INSTALL_USERNAME")";
-  diskDevice = "$(nix_escape "$DISK")";
-  swapSize = "$(nix_escape "$SWAP_SIZE")";
-  timeZone = "$(nix_escape "$TIMEZONE")";
-  desktop = "$(nix_escape "$INSTALL_DESKTOP")";
-  allowUnfree = ${ALLOW_UNFREE};
-}
-EOF
+# values reach nix through the environment, so nothing needs escaping
+# shellcheck disable=SC2016 # the ${...} below is nix interpolation
+S_HOSTNAME=$INSTALL_HOSTNAME S_USERNAME=$INSTALL_USERNAME S_DISK=$DISK \
+  S_SWAP=$SWAP_SIZE S_TZ=$TIMEZONE S_DESKTOP=$INSTALL_DESKTOP \
+  nix eval --impure --raw --expr '
+    let
+      e = builtins.getEnv;
+      fields = [
+        [ "hostname" (e "S_HOSTNAME") ]
+        [ "username" (e "S_USERNAME") ]
+        [ "diskDevice" (e "S_DISK") ]
+        [ "swapSize" (e "S_SWAP") ]
+        [ "timeZone" (e "S_TZ") ]
+        [ "desktop" (e "S_DESKTOP") ]
+      ];
+      line = f: "  ${builtins.toJSON (builtins.elemAt f 0)}: ${builtins.toJSON (builtins.elemAt f 1)}";
+    in
+    "{\n" + builtins.concatStringsSep ",\n" (map line fields) + "\n}\n"
+  ' >settings.json
 
 case $FLAKE_INPUTS in
   update)
@@ -200,7 +206,7 @@ sync
 
 # Copy staged flake onto the target (already without .git)
 tar -C "$STAGE" -cf - . | tar -C /mnt/persist/etc/nixos -xf -
-[[ -f /mnt/persist/etc/nixos/settings.nix ]] || die "settings.nix missing after copy"
+[[ -f /mnt/persist/etc/nixos/settings.json ]] || die "settings.json missing after copy"
 [[ -f /mnt/persist/etc/nixos/flake.nix ]] || die "flake.nix missing after copy"
 
 # Leave deleted directories before nixos-install (getcwd safety)
