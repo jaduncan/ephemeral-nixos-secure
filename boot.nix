@@ -7,7 +7,8 @@
     # lanzaboote installs systemd-boot (secureboot.nix); it reads editor,
     # configurationLimit and timeout from these options
     loader.systemd-boot.editor = false;
-    loader.systemd-boot.configurationLimit = 5;
+    # measured boot (secureboot.nix) allows at most 4
+    loader.systemd-boot.configurationLimit = 4;
     loader.efi.canTouchEfiVariables = true;
     loader.timeout = 3;
 

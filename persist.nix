@@ -30,6 +30,8 @@ in
         mode = "0700";
       }
       "/var/lib/cups"
+      # pcrlock components: lanzaboote's PCR 4 predictions (secureboot.nix)
+      "/var/lib/pcrlock.d"
       # Secure Boot keys (secureboot.nix)
       {
         directory = "/var/lib/sbctl";

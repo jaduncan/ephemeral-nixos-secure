@@ -3,6 +3,7 @@
 { flake }:
 
 let
+  inherit (flake.inputs.nixpkgs) lib;
   c = flake.nixosConfigurations.nixos.config;
   lzb = c.boot.lanzaboote;
   units = c.systemd.services;
@@ -31,5 +32,23 @@ in
       builtins.filter (d: d.directory == lzb.pkiBundle) c.environment.persistence."/persist".directories
     );
     keysMounted = builtins.hasAttr lzb.pkiBundle c.fileSystems;
+  };
+  measuredBoot = {
+    inherit (lzb.measuredBoot) enable pcrs pcrlockPolicy pcrlockDirectory;
+    lanzabooteLimit = lzb.configurationLimit;
+    makePolicy = units.systemd-pcrlock-make-policy.serviceConfig.ExecStart;
+    mountOrdering = builtins.mapAttrs (_: u: u.unitConfig.RequiresMountsFor or null) (
+      lib.filterAttrs (n: _: lib.hasPrefix "systemd-pcrlock-" n) units
+    );
+    persistMounts = map (m: { inherit (m) where wantedBy before; }) (
+      builtins.filter (
+        m:
+        builtins.elem m.where [
+          "/var/lib/pcrlock.d"
+          lzb.pkiBundle
+        ]
+      ) c.systemd.mounts
+    );
+    enrollTpm = builtins.any (p: lib.getName p == "enroll-tpm") c.environment.systemPackages;
   };
 }

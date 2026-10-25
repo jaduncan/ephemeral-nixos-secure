@@ -31,7 +31,11 @@
                 "--iter-time"
                 "5000"
               ];
-              settings.allowDiscards = true;
+              settings = {
+                allowDiscards = true;
+                # TPM2 slot from enroll-tpm (secureboot.nix); falls back to the passphrase
+                crypttabExtraOpts = [ "tpm2-device=auto" ];
+              };
               content = {
                 type = "btrfs";
                 extraArgs = [
