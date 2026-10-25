@@ -1,0 +1,59 @@
+name: verify
+
+# Checks for the secure-boot branch: lock new inputs, run the CI checks,
+# and print the facts in .github/verify/inspect.nix.
+on:
+  push:
+    branches: [secure-boot]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: DeterminateSystems/determinate-nix-action@96c5ee93a9dddf2830d31e1da6ec719077336c28 # v3.23.3
+
+      - name: lock new inputs
+        run: |
+          nix flake lock path:.
+          if ! git diff --quiet flake.lock; then
+            echo "::warning::flake.lock changed; commit the flake-lock artifact"
+            git diff flake.lock
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: flake-lock
+          path: flake.lock
+
+      - name: shellcheck
+        run: nix run --inputs-from path:. nixpkgs#shellcheck -- -x -P SCRIPTDIR scripts/*.sh
+
+      - name: nixfmt
+        run: git ls-files -z '*.nix' | xargs -0 nix run --inputs-from path:. nixpkgs#nixfmt -- --check
+
+      - name: Use example machine files
+        run: |
+          cp settings.example.json settings.json
+          cp hardware-configuration.example.nix hardware-configuration.nix
+
+      - name: nix flake check
+        run: nix flake check path:. --no-build
+
+      - name: inspect
+        run: |
+          nix eval --impure --json --expr \
+            "import ./.github/verify/inspect.nix { flake = builtins.getFlake \"path:$PWD\"; }" \
+            | tee inspect.json | nix run --inputs-from path:. nixpkgs#jq -- .
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: inspect
+          path: inspect.json
