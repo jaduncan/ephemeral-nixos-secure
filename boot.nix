@@ -4,7 +4,8 @@
 
 {
   boot = {
-    loader.systemd-boot.enable = true;
+    # lanzaboote installs systemd-boot (secureboot.nix); it reads editor,
+    # configurationLimit and timeout from these options
     loader.systemd-boot.editor = false;
     loader.systemd-boot.configurationLimit = 5;
     loader.efi.canTouchEfiVariables = true;

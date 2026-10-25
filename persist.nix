@@ -30,6 +30,11 @@ in
         mode = "0700";
       }
       "/var/lib/cups"
+      # Secure Boot keys (secureboot.nix)
+      {
+        directory = "/var/lib/sbctl";
+        mode = "0700";
+      }
       {
         directory = "/var/lib/fwupd";
         user = "fwupd-refresh";

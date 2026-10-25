@@ -10,6 +10,10 @@
     };
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v1.2.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -17,6 +21,7 @@
       nixpkgs,
       impermanence,
       disko,
+      lanzaboote,
       ...
     }:
     let
@@ -36,6 +41,7 @@
           ./desktop.nix
           ./hardware-configuration.nix
           impermanence.nixosModules.impermanence
+          lanzaboote.nixosModules.lanzaboote
         ];
       };
     in

@@ -8,6 +8,7 @@
 {
   imports = [
     ./boot.nix
+    ./secureboot.nix
     ./persist.nix
     ./users.nix
     ./unfree.nix
