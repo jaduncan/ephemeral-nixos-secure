@@ -39,7 +39,7 @@ GUM_BIN=$(type -P gum 2>/dev/null || true)
 if [[ -z ${GUM_BIN:-} ]]; then
   command -v nix >/dev/null || fallback_plain "need gum or nix"
   info "fetching gum via nix…"
-  GUM_BIN=$(nix build --no-link --print-out-paths nixpkgs#gum)/bin/gum
+  GUM_BIN=$(nix build --no-link --print-out-paths --inputs-from "path:${FLAKE_ROOT}" nixpkgs#gum)/bin/gum
 fi
 [[ -x ${GUM_BIN:-} ]] || fallback_plain "gum binary missing"
 
@@ -83,7 +83,7 @@ TIMEZONE=$(run_gum input --header "Timezone" --value "${TIMEZONE:-UTC}" --placeh
 CHEZMOI_REPO=$(run_gum input --header "chezmoi repo (optional)" --value "${CHEZMOI_REPO:-}" --placeholder "https://github.com/you/dotfiles.git")
 CHEZMOI_REV=${CHEZMOI_REV:-}
 if [[ -n $CHEZMOI_REPO ]]; then
-  CHEZMOI_REV=$(run_gum input --header "chezmoi commit" --value "$CHEZMOI_REV" --placeholder "git rev, 7-64 hex chars")
+  CHEZMOI_REV=$(run_gum input --header "chezmoi commit" --value "$CHEZMOI_REV" --placeholder "full 40-character commit hash")
 fi
 ALLOW_UNFREE=$(run_gum choose --header "Allow unfree packages?" "true" "false")
 

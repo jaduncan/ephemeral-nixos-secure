@@ -40,12 +40,13 @@
       };
     in
     {
-      nixosConfigurations =
-        {
-          nixos = mkSystem;
-        }
-        // lib.optionalAttrs (settings.hostname != "nixos") {
-          ${settings.hostname} = mkSystem;
-        };
+      formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
+
+      nixosConfigurations = {
+        nixos = mkSystem;
+      }
+      // lib.optionalAttrs (settings.hostname != "nixos") {
+        ${settings.hostname} = mkSystem;
+      };
     };
 }

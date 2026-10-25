@@ -86,7 +86,7 @@ Sanity check: `sudo touch /ephemeral-test`, drop a file in `~`, reboot. Root fil
 }
 ```
 
-Chezmoi is not a setting. One line in `/persist/etc/chezmoi-repo`: `<git-url> <commit>`. The installer writes that file when `CHEZMOI_REPO` and `CHEZMOI_REV` are set.
+Chezmoi is not a setting. One line in `/persist/etc/chezmoi-repo`: `<git-url> <commit>`, where the commit is the full 40-character hash. The installer writes that file when `CHEZMOI_REPO` and `CHEZMOI_REV` are set.
 
 ### Forks and private flakes
 
@@ -102,7 +102,10 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 |------|------|
 | `flake.nix` | inputs + NixOS configs |
 | `disko.nix` | partitions / LUKS / btrfs |
-| `configuration.nix` | system |
+| `configuration.nix` | system, imports the modules below |
+| `boot.nix` | bootloader, plymouth, root rollback |
+| `persist.nix` | impermanence |
+| `users.nix` | user, sudo, chezmoi |
 | `desktop.nix` | Plasma / GNOME / niri |
 | `settings.example.nix` | template → `settings.nix` |
 | `scripts/tui.sh` | gum installer |
@@ -114,7 +117,7 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 - **Changing your login password:** `passwd` won't survive reboot (`mutableUsers = false`; hash lives on `/persist`). Do this instead:
 
   ```bash
-  mkpasswd -m sha-512                    # type new password twice; prints a hash
+  mkpasswd -m yescrypt                   # type new password twice; prints a hash
   sudo tee /persist/passwords/$USER      # paste the hash, then Ctrl-D
   sudo chmod 600 /persist/passwords/$USER
   ```
@@ -123,7 +126,7 @@ Rebuilds are the same either way — still `path:.#nixos` so gitignored files ar
 
 - Hibernation is off on purpose (btrfs swapfile + LUKS). Suspend is fine.
 - `/boot` is unencrypted. Bootloader editor is disabled.
-- SSH is installed but port 22 is firewalled shut. Keys under `/persist/etc/ssh`.
+- SSH is off. `services.openssh.enable = true` turns it on; port 22 stays firewalled and the ed25519 host key lives under `/persist/etc/ssh`.
 - `flake.lock` pins nixpkgs/disko/impermanence. The TUI asks whether to keep those pins or run `nix flake update` for newest. Plain install defaults to the lock (`FLAKE_INPUTS=update` to refresh).
 
 ## Troubleshooting
@@ -148,12 +151,12 @@ cp settings.example.nix settings.nix
 cp hardware-configuration.example.nix hardware-configuration.nix
 # edit settings
 
-sudo nix run github:nix-community/disko -- --flake path:.#nixos --mode destroy,format,mount
+sudo nix run --inputs-from path:. disko -- --flake path:.#nixos --mode destroy,format,mount
 sudo btrfs subvolume list /mnt   # expect root-blank
 
 sudo mkdir -p /mnt/persist/passwords /mnt/persist/etc/ssh /mnt/persist/etc/nixos /mnt/persist/home/nixuser
 sudo chmod 700 /mnt/persist/passwords /mnt/persist/home/nixuser
-mkpasswd -m sha-512 | sudo tee /mnt/persist/passwords/nixuser
+mkpasswd -m yescrypt | sudo tee /mnt/persist/passwords/nixuser
 sudo chmod 600 /mnt/persist/passwords/nixuser
 sudo cp -a . /mnt/persist/etc/nixos/
 

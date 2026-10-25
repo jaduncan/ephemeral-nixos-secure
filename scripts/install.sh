@@ -157,22 +157,10 @@ case $FLAKE_INPUTS in
     ;;
 esac
 
-# Prefer disko revision pinned in flake.lock when present
-DISKO_FLAKE="github:nix-community/disko"
-if [[ -f flake.lock ]]; then
-  DISKO_REV=""
-  if command -v python3 >/dev/null; then
-    DISKO_REV=$(python3 -c 'import json; print(json.load(open("flake.lock"))["nodes"]["disko"]["locked"]["rev"])' 2>/dev/null || true)
-  fi
-  if [[ -n ${DISKO_REV:-} ]]; then
-    DISKO_FLAKE="github:nix-community/disko/${DISKO_REV}"
-    info "disko tool @ $DISKO_REV (from flake.lock)"
-  fi
-fi
-
+# disko tool from flake.lock, same rev the config evaluates against
 info "disko format+mount (LUKS passphrase next)"
 info "first run downloads nixpkgs/disko — can sit on 0/N for several minutes"
-nix run -L "$DISKO_FLAKE" -- \
+nix run -L --inputs-from "path:${STAGE}" disko -- \
   --flake "path:${STAGE}#${FLAKE_ATTR}" \
   --mode destroy,format,mount
 
@@ -196,9 +184,9 @@ fi
 
 info "login password for ${INSTALL_USERNAME}"
 if command -v mkpasswd >/dev/null; then
-  HASH=$(mkpasswd -m sha-512)
+  HASH=$(mkpasswd -m yescrypt)
 else
-  HASH=$(nix-shell -p mkpasswd --run 'mkpasswd -m sha-512')
+  HASH=$(nix shell --inputs-from "path:${STAGE}" nixpkgs#mkpasswd -c mkpasswd -m yescrypt)
 fi
 [[ -n $HASH ]] || die "empty password hash (mkpasswd failed or cancelled)"
 

@@ -13,10 +13,8 @@ let
     allowUnfree = true;
   };
 
-  examplePath = flakeRoot + "/settings.example.nix";
   settingsPath = flakeRoot + "/settings.nix";
 
-  fromExample = if builtins.pathExists examplePath then import examplePath else { };
   fromSettings =
     if builtins.pathExists settingsPath then
       import settingsPath
@@ -31,7 +29,7 @@ let
     if !(fromSettings ? username) || fromSettings.username == "" then
       throw "settings.nix must set username"
     else
-      defaults // fromExample // fromSettings;
+      defaults // fromSettings;
   merged' =
     if (merged.chezmoiRepo or "") != "" then
       throw ''

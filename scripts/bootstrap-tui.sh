@@ -69,10 +69,17 @@ fi
 [[ -f $FLAKE_ROOT/flake.nix ]] || die "flake.nix missing in clone"
 chmod +x "$FLAKE_ROOT/scripts/tui.sh" "$FLAKE_ROOT/scripts/install.sh"
 
-# Load verify helper from the clone when this script was curl'd alone
-# shellcheck source=common.sh
-source "$FLAKE_ROOT/scripts/common.sh"
-verify_git_rev "$FLAKE_ROOT"
+# checked here, not by code from the clone being checked
+if [[ -n $EXPECTED_REV ]]; then
+  [[ $EXPECTED_REV =~ ^[0-9a-fA-F]{40}$ ]] \
+    || die "EXPECTED_REV must be the full 40-character commit hash"
+  got=$(git -C "$FLAKE_ROOT" rev-parse HEAD)
+  [[ $got == "${EXPECTED_REV,,}" ]] \
+    || die "git rev mismatch: got $got, expected $EXPECTED_REV. Refusing to install."
+  info "verified git rev $got"
+elif [[ $BRANCH != main ]]; then
+  info "warning: $BRANCH is not verified (set EXPECTED_REV)"
+fi
 
 # Optional: pre-set DISK / INSTALL_* via env; tui prompts for anything missing
 DISK="${DISK:-${1:-}}"

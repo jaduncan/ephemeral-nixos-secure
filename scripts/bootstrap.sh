@@ -78,8 +78,16 @@ fi
 [[ -f $FLAKE_ROOT/flake.nix ]] || die "flake.nix missing in clone"
 chmod +x "$FLAKE_ROOT/scripts/install.sh"
 
-if declare -F verify_git_rev >/dev/null; then
-  verify_git_rev "$FLAKE_ROOT"
+# checked here, not by code from the clone being checked
+if [[ -n $EXPECTED_REV ]]; then
+  [[ $EXPECTED_REV =~ ^[0-9a-fA-F]{40}$ ]] \
+    || die "EXPECTED_REV must be the full 40-character commit hash"
+  got=$(git -C "$FLAKE_ROOT" rev-parse HEAD)
+  [[ $got == "${EXPECTED_REV,,}" ]] \
+    || die "git rev mismatch: got $got, expected $EXPECTED_REV. Refusing to install."
+  info "verified git rev $got"
+elif [[ $BRANCH != main ]]; then
+  info "warning: $BRANCH is not verified (set EXPECTED_REV)"
 fi
 
 info "about to erase $DISK — install.sh will ask you to type YES"
@@ -97,4 +105,10 @@ export ALLOW_UNFREE="${ALLOW_UNFREE:-true}"
 export FLAKE_INPUTS="${FLAKE_INPUTS:-lock}"
 export FLAKE_ATTR="${FLAKE_ATTR:-nixos}"
 
-exec "$FLAKE_ROOT/scripts/install.sh"
+if [[ -t 0 ]]; then
+  exec "$FLAKE_ROOT/scripts/install.sh"
+fi
+# stdin is the curl pipe that bash is still reading this script from, so only
+# install.sh gets the terminal
+{ : </dev/tty; } 2>/dev/null || die "no terminal for the prompts (run from a console)"
+exec "$FLAKE_ROOT/scripts/install.sh" </dev/tty

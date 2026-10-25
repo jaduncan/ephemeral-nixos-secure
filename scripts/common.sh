@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # shared by install.sh / tui.sh / bootstrap.sh — source only, do not execute
 
 die() { echo "error: $*" >&2; exit 1; }
@@ -52,8 +53,8 @@ validate_chezmoi() {
 }
 
 validate_chezmoi_rev() {
-  [[ $1 =~ ^[0-9a-fA-F]{7,64}$ ]] \
-    || die "chezmoi commit must be 7-64 hex chars"
+  [[ $1 =~ ^[0-9a-fA-F]{40}$ ]] \
+    || die "chezmoi commit must be the full 40-character hash"
 }
 
 validate_disk() {
@@ -92,32 +93,4 @@ validate_flake_attr() {
 require_uefi() {
   [[ -d /sys/firmware/efi ]] \
     || die "UEFI required (this flake uses systemd-boot). Enable OVMF/UEFI in the VM/firmware."
-}
-
-# HEAD must equal EXPECTED_REV. A pin with no EXPECTED_REV uses COMMIT= from RELEASE.
-verify_git_rev() {
-  local root=$1
-  local want=${EXPECTED_REV:-}
-  local ref=${TAG:-${BRANCH:-main}}
-  local got tag_line
-
-  command -v git >/dev/null || die "git not found"
-  got=$(git -C "$root" rev-parse HEAD)
-
-  if [[ -z $want && -f $root/RELEASE && $ref != main && $ref != master ]]; then
-    want=$(grep -E '^COMMIT=' "$root/RELEASE" | head -1 | cut -d= -f2- | tr -d '[:space:]')
-  fi
-
-  [[ -n $want ]] || return 0
-  [[ $want =~ ^[0-9a-fA-F]{40}$ ]] \
-    || die "EXPECTED_REV must be the full 40-character commit hash"
-
-  if [[ $got == "$want" ]]; then
-    info "verified git rev $got"
-    return 0
-  fi
-
-  tag_line=""
-  [[ -f $root/RELEASE ]] && tag_line=$(grep -E '^TAG=' "$root/RELEASE" | head -1 || true)
-  die "git rev mismatch: got $got, expected $want${tag_line:+ ($tag_line)}. Refusing to install."
 }

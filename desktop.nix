@@ -24,8 +24,7 @@ in
   ];
 
   environment.persistence."/persist".directories =
-    lib.optionals isPlasma [ "/var/lib/plasmalogin" ]
-    ++ lib.optionals isGnome [ "/var/lib/gdm" ];
+    lib.optionals isPlasma [ "/var/lib/plasmalogin" ] ++ lib.optionals isGnome [ "/var/lib/gdm" ];
 
   # X11 helpers still useful for XWayland / some greeters
   services.xserver.enable = lib.mkIf (isPlasma || isGnome) true;
