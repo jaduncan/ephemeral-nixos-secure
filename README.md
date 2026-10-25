@@ -1,6 +1,6 @@
 # Ephemeral NixOS
 
-[![CI](https://github.com/the-wittch/ephemeral-nixos/actions/workflows/ci.yml/badge.svg)](https://github.com/the-wittch/ephemeral-nixos/actions/workflows/ci.yml)
+[![CI](https://github.com/jaduncan/ephemeral-nixos-secure/actions/workflows/ci.yml/badge.svg)](https://github.com/jaduncan/ephemeral-nixos-secure/actions/workflows/ci.yml)
 
 NixOS with an encrypted btrfs disk, root rolled back to blank every boot, and `/home` (plus a few system paths) kept on `/persist`. Desktop is Plasma, GNOME, or niri+Noctalia — pick at install.
 
@@ -17,13 +17,13 @@ UEFI, network up on the graphical ISO.
 
 ### Pinned install (recommended)
 
-Use a [release tag](https://github.com/the-wittch/ephemeral-nixos/releases) and check the commit hash. Values live in [`RELEASE`](./RELEASE) on that tag:
+Use a [release tag](https://github.com/jaduncan/ephemeral-nixos-secure/releases) and check the commit hash. Values live in [`RELEASE`](./RELEASE) on that tag:
 
 ```bash
 TAG=v1.5.0
 REV=e65fc7230e117a9705eda65adc9e5871c870d57d   # must match RELEASE / the GitHub release
 
-git clone --branch "$TAG" --depth 1 https://github.com/the-wittch/ephemeral-nixos.git ~/nix
+git clone --branch "$TAG" --depth 1 https://github.com/jaduncan/ephemeral-nixos-secure.git ~/nix
 cd ~/nix
 [[ $(git rev-parse HEAD) == "$REV" ]] || { echo "hash mismatch"; exit 1; }
 sudo ./scripts/tui.sh
@@ -32,18 +32,18 @@ sudo ./scripts/tui.sh
 Same pin via bootstrap (no interactive clone):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/v1.5.0/scripts/bootstrap-tui.sh \
+curl -fsSL https://raw.githubusercontent.com/jaduncan/ephemeral-nixos-secure/v1.5.0/scripts/bootstrap-tui.sh \
   -o /tmp/bootstrap-tui.sh
 sudo env TAG=v1.5.0 EXPECTED_REV=e65fc7230e117a9705eda65adc9e5871c870d57d \
   bash /tmp/bootstrap-tui.sh
 ```
 
-Copy the tag and commit from the latest [GitHub release](https://github.com/the-wittch/ephemeral-nixos/releases) (or from [`RELEASE`](./RELEASE) on that tag) if these examples are stale.
+Copy the tag and commit from the latest [GitHub release](https://github.com/jaduncan/ephemeral-nixos-secure/releases) (or from [`RELEASE`](./RELEASE) on that tag) if these examples are stale.
 
 ### Floating `main` (dev)
 
 ```bash
-git clone https://github.com/the-wittch/ephemeral-nixos.git ~/nix
+git clone https://github.com/jaduncan/ephemeral-nixos-secure.git ~/nix
 cd ~/nix
 sudo ./scripts/tui.sh
 ```
@@ -51,7 +51,7 @@ sudo ./scripts/tui.sh
 Plain / no gum:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \
+curl -fsSL https://raw.githubusercontent.com/jaduncan/ephemeral-nixos-secure/main/scripts/bootstrap.sh \
   | sudo env SWAP_SIZE=4G bash -s -- /dev/vda
 ```
 
@@ -59,9 +59,9 @@ curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scr
 
 You'll set a LUKS passphrase and a login password. Then detach the ISO and reboot.
 
-**Secure Boot / TPM (this fork, untested):** lanzaboote signs the boot chain (keys in `/persist/etc/secureboot`). Put the firmware in Setup Mode before installing. The first boot is unsigned; keys are then generated and enrolled and the machine reboots itself. Afterwards run `sudo enroll-tpm` to add a recovery key and a PIN-protected TPM slot bound to a systemd-pcrlock policy (PCRs 0, 4, 7). Build the ISO with `nix build path:.#iso` on x86_64 Linux.
+**Secure Boot / TPM (this fork, untested):** a TPM2 supported by systemd-pcrlock is required, also during install. Put the firmware in Secure Boot Setup Mode before installing. The first boot is unsigned; lanzaboote then generates keys (`/persist/etc/secureboot`), stages them on the ESP and reboots, and systemd-boot enrolls them. Once Secure Boot is on, run `sudo enroll-tpm` to add a recovery key and a PIN-protected TPM slot bound to a systemd-pcrlock policy (PCRs 0, 4, 7). Firmware updates change PCR 0, so expect to use the recovery key after one. Build the ISO with `nix build path:.#iso` on x86_64 Linux and run `sudo ephemeral-install` from it.
 
-**VMs:** UEFI with OVMF Secure Boot in Setup Mode and swtpm, or Secure Boot off to skip it, VirtIO disk (`/dev/vda`), ~64G disk / 8G RAM is enough. Plymouth can look weird on virtual GPUs; unlock still works.
+**VMs:** UEFI (OVMF with Secure Boot, in Setup Mode) plus swtpm, VirtIO disk (`/dev/vda`), ~64G disk / 8G RAM is enough. Plymouth can look weird on virtual GPUs; unlock still works.
 
 ## After install
 
@@ -107,7 +107,7 @@ Chezmoi is not a setting. One line in `/persist/etc/chezmoi-repo`: `<git-url> <c
 
 Install leaves the flake at `/persist/etc/nixos`. You can keep using this repo as-is and only edit `settings.json`, or treat that directory as your own flake: fork this project, push to a private remote, and commit machine-specific modules there (DNS, Steam, extra imports, whatever). The public tree is meant to stay a small template; how you split files afterward is up to you.
 
-A public example of that split is [ephemeral-nixos-config](https://github.com/the-wittch/ephemeral-nixos-config): the same install, then extra modules for one machine. It tracks this template on its own and may not match a given release tag.
+A public example of that split is [ephemeral-nixos-config](https://github.com/jaduncan/ephemeral-nixos-secure-config): the same install, then extra modules for one machine. It tracks this template on its own and may not match a given release tag.
 
 Rebuilds are the same either way — still `path:.#nixos` so gitignored files are included.
 

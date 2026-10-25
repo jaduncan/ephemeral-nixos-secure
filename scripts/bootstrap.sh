@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Plain installer (no gum). TUI path: bootstrap-tui.sh / tui.sh
-# curl -fsSL https://raw.githubusercontent.com/the-wittch/ephemeral-nixos/main/scripts/bootstrap.sh \
+# curl -fsSL https://raw.githubusercontent.com/jaduncan/ephemeral-nixos-secure/main/scripts/bootstrap.sh \
 #   | sudo env SWAP_SIZE=4G bash -s -- /dev/vda
 
 set -euo pipefail
@@ -20,7 +20,7 @@ if [[ -n $SCRIPT_DIR && -f $SCRIPT_DIR/common.sh ]]; then
   source "$SCRIPT_DIR/common.sh"
 fi
 
-DEFAULT_REPO_URL="https://github.com/the-wittch/ephemeral-nixos.git"
+DEFAULT_REPO_URL="https://github.com/jaduncan/ephemeral-nixos-secure.git"
 
 REPO_URL="${REPO_URL:-$DEFAULT_REPO_URL}"
 # TAG wins over BRANCH (both work with git clone --branch; tags are preferred for pins)

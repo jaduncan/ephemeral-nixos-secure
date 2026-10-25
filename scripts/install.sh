@@ -15,6 +15,13 @@ FLAKE_ROOT=$(cd "$(dirname "$SCRIPT_DIR")" && pwd)
 cd "$FLAKE_ROOT"
 
 command -v nix >/dev/null || die "nix not found"
+
+# measured boot runs systemd-pcrlock during nixos-install, which needs a TPM2
+[[ -e /dev/tpmrm0 ]] || die "no TPM2 found (/dev/tpmrm0). VMs need swtpm."
+setup_mode=/sys/firmware/efi/efivars/SetupMode-8be4df61-93ca-11d2-aa0d-00e098032b8c
+if [[ ! -r $setup_mode || $(od -An -tu1 -j4 -N1 "$setup_mode" | tr -d ' ') != 1 ]]; then
+  info "warning: firmware is not in Secure Boot Setup Mode; keys will not auto-enroll"
+fi
 command -v lsblk >/dev/null || die "lsblk not found"
 
 export NIX_CONFIG="${NIX_CONFIG-}
