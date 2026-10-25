@@ -6,7 +6,7 @@
   boot = {
     # bootloader is lanzaboote, see secureboot.nix
     loader.systemd-boot.editor = false;
-    loader.systemd-boot.configurationLimit = 5;
+    loader.systemd-boot.configurationLimit = 4; # measuredBoot (systemd-pcrlock) allows at most 4
     initrd.systemd.enable = true;
     loader.efi.canTouchEfiVariables = true;
     loader.timeout = 3;

@@ -30,6 +30,9 @@ in
         mode = "0700";
       }
       "/var/lib/cups"
+      # lanzaboote measured boot policy and key auto-enrollment state
+      "/var/lib/pcrlock.d"
+      "/var/lib/auto-cryptenroll"
       {
         directory = "/var/lib/fwupd";
         user = "fwupd-refresh";
@@ -48,6 +51,7 @@ in
     files = [
       "/etc/machine-id"
       "/var/lib/systemd/random-seed"
+      "/var/lib/systemd/pcrlock.json"
       # host key for encrypted service credentials (libvirt uses one)
       "/var/lib/systemd/credential.secret"
     ];

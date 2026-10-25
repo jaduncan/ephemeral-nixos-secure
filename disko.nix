@@ -34,7 +34,7 @@
               settings.allowDiscards = true;
               # falls back to the passphrase prompt when no TPM slot is enrolled
               # or the PCR 7 policy no longer matches
-              crypttabExtraOpts = [
+              settings.crypttabExtraOpts = [
                 "tpm2-device=auto"
                 "token-timeout=10"
               ];

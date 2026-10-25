@@ -7,17 +7,28 @@
   boot.lanzaboote = {
     enable = true;
     pkiBundle = "/persist/etc/secureboot";
+
+    # automatic provisioning (trust on first use): the first boot is unsigned,
+    # a service generates keys, re-signs the ESP, and reboots. systemd-boot then
+    # enrolls the keys, which only works with the firmware in Setup Mode.
     autoGenerateKeys.enable = true;
-    # only takes effect when the firmware is in Setup Mode
     autoEnrollKeys = {
       enable = true;
-      autoReboot = false;
+      autoReboot = true;
+    };
+
+    # TPM2 policy through systemd-pcrlock, updated by lanzaboote on rebuilds
+    measuredBoot = {
+      enable = true;
+      pcrs = [
+        0
+        4
+        7
+      ];
     };
   };
 
-  # TPM2 for the LUKS unlock (see enroll-tpm below) and measured boot
   security.tpm2.enable = true;
-  boot.initrd.systemd.tpm2.enable = true;
 
   environment.systemPackages = [
     pkgs.sbctl
@@ -28,14 +39,19 @@
       dev=''${1:-$(readlink -f /dev/disk/by-partlabel/disk-main-luks)}
 
       if ! ${pkgs.systemd}/bin/bootctl status 2>/dev/null | grep -q 'Secure Boot: enabled'; then
-        echo "Secure Boot is not enabled. Enroll keys and reboot first, otherwise PCR 7 will change." >&2
+        echo "Secure Boot is not enabled yet. Finish key enrollment first." >&2
+        exit 1
+      fi
+      if [[ $(${pkgs.systemd}/lib/systemd/systemd-pcrlock is-supported) != yes ]]; then
+        echo "this TPM is not supported by systemd-pcrlock" >&2
         exit 1
       fi
 
       echo "Recovery key (write it down, it is shown once):"
       ${pkgs.systemd}/bin/systemd-cryptenroll --recovery-key "$dev"
-      ${pkgs.systemd}/bin/systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=7 "$dev"
-      echo "done. next boot unlocks via TPM; changing firmware or Secure Boot keys falls back to the passphrase."
+      ${pkgs.systemd}/bin/systemd-cryptenroll \
+        --tpm2-device=auto --tpm2-with-pin=true \
+        --tpm2-pcrlock=/var/lib/systemd/pcrlock.json "$dev"
     '')
   ];
 }
